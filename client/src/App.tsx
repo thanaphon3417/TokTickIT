@@ -7,6 +7,7 @@ type UiState = "idle" | "loading" | "success" | "error";
 export default function App() {
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
+  const [errorMessage, setErrorMessage] = useState("");
   void categories;
 
   async function handleCheck() {
@@ -14,6 +15,22 @@ export default function App() {
     //   - success: store categories and show Online + the list, or
     //   - error: show Offline + a useful message.
     setState("loading");
+    setCategories([]);
+    setErrorMessage("");
+
+    try {
+      const systemStatus = await checkSystem();
+
+      setCategories(systemStatus.categories);
+      setState("success");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to connect to TokTickIT API.",
+      );
+      setState("error");
+    }
   }
 
   return (
@@ -27,6 +44,36 @@ export default function App() {
       </button>
 
       {/* TODO(Issue 4): render loading / success (Online + categories) / error (Offline) states. */}
+      {state === "loading" && (
+        <p className="mt-4" role="status">
+          Loading...
+        </p>
+      )}
+
+      {state === "success" && (
+        <section className="mt-4">
+          <p>
+            System Status: <strong>Online</strong>
+          </p>
+
+          <h2 className="h5 mt-4">Supported Request Categories</h2>
+
+          <ol>
+            {categories.map((category) => (
+              <li key={category.id}>{category.name}</li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {state === "error" && (
+        <div className="alert alert-danger mt-4" role="alert">
+          <p className="mb-1">
+            System Status: <strong>Offline</strong>
+          </p>
+          <p className="mb-0">{errorMessage}</p>
+        </div>
+      )}
     </div>
   );
 }
