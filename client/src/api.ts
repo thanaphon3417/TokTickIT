@@ -18,15 +18,27 @@ export interface SystemStatus {
 export async function checkSystem(): Promise<SystemStatus> {
   // TODO(Issue 2 & 4): implement the two fetch calls described above.
   const healthResponse = await fetch(`${API_URL}/api/health`);
+
   if (!healthResponse.ok) {
-    throw new Error(`Health check failed (${healthResponse.status})`);
+    throw new Error("Unable to connect to TokTickIT API.");
+  }
+
+  const health = await healthResponse.json();
+
+  if (health.status !== "ok") {
+    throw new Error("TokTickIT API health check failed.");
   }
 
   const categoriesResponse = await fetch(`${API_URL}/api/categories`);
+
   if (!categoriesResponse.ok) {
-    throw new Error(`Category request failed (${categoriesResponse.status})`);
+    throw new Error("Unable to retrieve request categories.");
   }
 
   const categories: Category[] = await categoriesResponse.json();
-  return { online: true, categories };
+
+  return {
+    online: true,
+    categories,
+  };
 }
