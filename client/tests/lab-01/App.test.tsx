@@ -1,0 +1,61 @@
+import { afterEach, describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import * as api from "../../src/api.js";
+import App from "../../src/App.js";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe("App", () => {
+  // WORKED EXAMPLE — provided for you.
+  it("renders the TokTickIT heading", () => {
+    render(<App />);
+    expect(screen.getByText(/TokTickIT/i)).toBeInTheDocument();
+  });
+
+  // Issue 4 — write these yourself. Hint: mock the api module with
+  // vi.spyOn(api, "checkSystem").mockResolvedValue(...) / .mockRejectedValue(...)
+  // then click the button and assert the Online list / Offline message.
+  it("shows Online and the seeded categories on success", async () => {
+    vi.spyOn(api, "checkSystem").mockResolvedValue({
+      online: true,
+      categories: [
+        { id: 1, name: "Account and Access" },
+        { id: 2, name: "Hardware" },
+        { id: 3, name: "Software" },
+        { id: 4, name: "Network" },
+      ],
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Check System" }));
+
+    expect(await screen.findByText("Online")).toBeInTheDocument();
+    expect(screen.getByText("Account and Access")).toBeInTheDocument();
+    expect(screen.getByText("Hardware")).toBeInTheDocument();
+    expect(screen.getByText("Software")).toBeInTheDocument();
+    expect(screen.getByText("Network")).toBeInTheDocument();
+  });
+
+  it("shows an Offline error message when the API is unavailable", async () => {
+    vi.spyOn(api, "checkSystem").mockRejectedValue(
+      new Error("Unable to connect to TokTickIT API."),
+    );
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Check System" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "System Status: Offline",
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Unable to connect to TokTickIT API.",
+    );
+  });
+});
