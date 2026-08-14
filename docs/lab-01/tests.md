@@ -1,13 +1,16 @@
-# Lab 1 — Test Plan and Evidence  (fill this in)
+# Lab 1 — Test Plan and Evidence
 
-All test files live under server/tests/lab-01/ and client/tests/lab-01/.
+All test files live under `server/tests/lab-01/` and `client/tests/lab-01/`.
 
-| # | Tool | Test | Result |
-|---|------|------|--------|
-| 1 | Supertest | GET /api/health returns 200, status=ok | |
-| 2 | Supertest | GET /api/categories returns 4 seeded categories in id order | |
-| 3 | Vitest | Heading renders | |
-| 4 | Vitest | Success state shows Online + category list | |
-| 5 | Vitest | Error state shows Offline + message | |
+| # | Test | Tool | Result |
+|--------|--------------------------------------|--------------------|--------|
+| 1 | `server/tests/lab-01/health.test.ts` | Vitest + Supertest | Passed |
+| 2 | `server/tests/lab-01/categories.test.ts` | Vitest + Supertest | Passed |
+| 3 | `client/tests/lab-01/App.test.tsx` | Vitest + Testing Library | Passed |
+| 4 | `client/tests/lab-01/App.test.tsx` | Vitest + Testing Library | Passed |
+| 5 | `client/tests/lab-01/App.test.tsx` | Vitest + Testing Library | Passed |
 
-Paste your passing terminal output / screenshot below.
+Both commands completed successfully on the local machine.
+
+- Server suite: 2 test files passed; 2 tests passed.
+- Client suite: 1 test file passed; 3 tests passed.
