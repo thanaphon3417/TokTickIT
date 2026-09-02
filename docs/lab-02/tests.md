@@ -21,7 +21,7 @@ Use Vitest for unit and API tests, Supertest for HTTP behavior, Testing Library 
 | API-08 | API | AC-09, BR-19 | Soft removal with valid/invalid reason | Metadata retained; removed download returns 404 | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | API-09 | API | BR-18 | Cross-requester attachment operations | Upload/list/download/remove return 404 | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | API-10 | API | BR-17 | Storage/upload failure | Safe 500; ticket and form workflow remain recoverable | `server/tests/lab-02/attachments.api.test.ts` | Planned |
-| UI-01 | UI | FR-01, AC-11 | Requester selector loading, empty, failure, switch | Active users only; correct states; reload on switch | `client/tests/lab-02/RequesterSelection.test.tsx` | Planned |
+| UI-01 | UI | FR-01, AC-11 | Requester selector loading, empty, failure, switch | Active users only; correct states; reload on switch | `client/tests/lab-01/App.test.tsx` | Planned |
 | UI-02 | UI | AC-02 | Create form field validation | Messages beside fields; API not called | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
 | UI-03 | UI | AC-01, BR-09 | Create success and duplicate prevention | Busy button; one call; backend ticket number shown | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
 | UI-04 | UI | AC-10 | Create API failure | Safe error; all values preserved; retry available | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
