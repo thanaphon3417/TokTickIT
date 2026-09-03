@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createTicket, DevelopmentRequester, getActiveRequesters, getCategories, getSystems, getTicket, getTickets, ReferenceItem, TicketDetail, TicketListResponse } from "./api.js";
+import { createTicket, DevelopmentRequester, getActiveRequesters, getCategories, getSystems, getTicket, getTickets, ReferenceItem, TicketDetail, TicketListResponse, removeAttachment, uploadAttachment } from "./api.js";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "loading" | "success" | "empty" | "error";
@@ -28,6 +28,7 @@ export default function App() {
   const [ticketPage, setTicketPage] = useState(1);
   const [detail, setDetail] = useState<TicketDetail | null>(null);
   const [detailError, setDetailError] = useState("");
+  const [attachmentError, setAttachmentError] = useState("");
 
   async function loadRequesters() {
     setState("loading");
@@ -112,6 +113,21 @@ export default function App() {
     } catch (error) {
       setDetailError(error instanceof Error ? error.message : "Unable to retrieve ticket.");
     }
+  }
+
+  async function handleAttachment(file: File) {
+    if (!detail) return;
+    setAttachmentError("");
+    try { await uploadAttachment(detail.id, Number(selectedId), file); await openDetail(detail.id); }
+    catch (error) { setAttachmentError(error instanceof Error ? error.message : "Unable to upload attachment."); }
+  }
+
+  async function handleRemoveAttachment(attachmentId: number) {
+    if (!detail) return;
+    const reason = window.prompt("Removal reason (3-500 characters):") ?? "";
+    if (!reason.trim()) return;
+    try { await removeAttachment(attachmentId, Number(selectedId), reason); await openDetail(detail.id); }
+    catch (error) { setAttachmentError(error instanceof Error ? error.message : "Unable to remove attachment."); }
   }
 
   return (
@@ -218,7 +234,10 @@ export default function App() {
             <dt>Summary</dt><dd>{detail.summary}</dd>
             <dt>Description</dt><dd>{detail.description}</dd>
           </dl>
-          <p>Attachments will be available in the next Lab 2 increment.</p>
+          <h3 className="h5">Attachments</h3>
+          <input type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleAttachment(file); }} />
+          {attachmentError && <p className="alert alert-danger mt-2" role="alert">{attachmentError}</p>}
+          <ul>{detail.attachments.map((attachment) => <li key={attachment.id}>{attachment.originalFilename} ({attachment.sizeBytes} bytes) {attachment.removedAt ? <strong>Removed: {attachment.removalReason}</strong> : <button className="btn btn-link" type="button" onClick={() => void handleRemoveAttachment(attachment.id)}>Remove</button>}</li>)}</ul>
         </section>
       )}
 

@@ -1,5 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import multer from "multer";
+import { randomUUID } from "node:crypto";
 import { getPrisma } from "./prisma.js";
 // getPrisma() is your lazy database handle. Call it INSIDE a route when you
 // need the DB (Issue 4). It is intentionally unused until then.
@@ -11,6 +13,13 @@ export const app = express();
 
 app.use(cors());          // already wired: lets the Vite dev server call this API
 app.use(express.json());
+
+const allowedMimeTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+const attachmentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, callback) => callback(null, allowedMimeTypes.has(file.mimetype)),
+});
 
 // ---------------------------------------------------------------------------
 // Issue 2 — API health check
@@ -201,7 +210,7 @@ app.get("/api/tickets/:ticketId", async (req: Request, res: Response) => {
   try {
     const ticket = await getPrisma().ticket.findFirst({
       where: { id: ticketId, requesterId },
-      include: { requester: true, category: true, relatedSystem: true },
+      include: { requester: true, category: true, relatedSystem: true, attachments: { orderBy: { uploadedAt: "desc" } } },
     });
 
     if (!ticket) {
@@ -213,6 +222,75 @@ app.get("/api/tickets/:ticketId", async (req: Request, res: Response) => {
   } catch {
     res.status(500).json({ error: "Unable to retrieve ticket." });
   }
+});
+
+app.get("/api/tickets/:ticketId/attachments", async (req: Request, res: Response) => {
+  const ticketId = Number(req.params.ticketId);
+  const requesterId = Number(req.query.requesterId);
+  if (!Number.isInteger(ticketId) || !Number.isInteger(requesterId) || ticketId <= 0 || requesterId <= 0) {
+    res.status(400).json({ error: "Invalid attachment request." });
+    return;
+  }
+  try {
+    const ticket = await getPrisma().ticket.findFirst({ where: { id: ticketId, requesterId } });
+    if (!ticket) { res.status(404).json({ error: "Ticket not found." }); return; }
+    const attachments = await getPrisma().attachment.findMany({
+      where: { ticketId },
+      select: { id: true, originalFilename: true, mimeType: true, sizeBytes: true, uploadedAt: true, removedAt: true, removalReason: true },
+      orderBy: { uploadedAt: "desc" },
+    });
+    res.status(200).json(attachments);
+  } catch { res.status(500).json({ error: "Unable to retrieve attachments." }); }
+});
+
+app.post("/api/tickets/:ticketId/attachments", (req: Request, res: Response, next: express.NextFunction) => {
+  attachmentUpload.single("file")(req, res, (error: unknown) => {
+    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") { res.status(413).json({ error: "Attachment exceeds the 5 MB limit." }); return; }
+    if (error || !req.file) { res.status(400).json({ error: "Attachment must be JPG, JPEG, PNG, WEBP, or PDF." }); return; }
+    next();
+  });
+}, async (req: Request, res: Response) => {
+  const ticketId = Number(req.params.ticketId);
+  const requesterId = Number(req.query.requesterId);
+  if (!Number.isInteger(ticketId) || !Number.isInteger(requesterId) || ticketId <= 0 || requesterId <= 0) { res.status(400).json({ error: "Invalid attachment request." }); return; }
+  try {
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
+    if (!ticket) { res.status(404).json({ error: "Ticket not found." }); return; }
+    const activeCount = await prisma.attachment.count({ where: { ticketId, removedAt: null } });
+    if (activeCount >= 5) { res.status(409).json({ error: "A ticket can have at most five active attachments." }); return; }
+    const file = req.file;
+    if (!file) { res.status(400).json({ error: "Attachment file is required." }); return; }
+    const attachment = await prisma.attachment.create({
+      data: { ticketId, originalFilename: file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_"), storedFilename: randomUUID(), mimeType: file.mimetype, sizeBytes: file.size, content: file.buffer },
+      select: { id: true, originalFilename: true, mimeType: true, sizeBytes: true, uploadedAt: true, removedAt: true, removalReason: true },
+    });
+    res.status(201).json(attachment);
+  } catch { res.status(500).json({ error: "Unable to upload attachment." }); }
+});
+
+app.get("/api/attachments/:attachmentId/download", async (req: Request, res: Response) => {
+  const attachmentId = Number(req.params.attachmentId);
+  const requesterId = Number(req.query.requesterId);
+  if (!Number.isInteger(attachmentId) || !Number.isInteger(requesterId) || attachmentId <= 0 || requesterId <= 0) { res.status(400).json({ error: "Invalid attachment request." }); return; }
+  try {
+    const attachment = await getPrisma().attachment.findFirst({ where: { id: attachmentId, removedAt: null, ticket: { requesterId } } });
+    if (!attachment) { res.status(404).json({ error: "Attachment not found." }); return; }
+    res.type(attachment.mimeType).attachment(attachment.originalFilename).send(Buffer.from(attachment.content));
+  } catch { res.status(500).json({ error: "Unable to download attachment." }); }
+});
+
+app.delete("/api/attachments/:attachmentId", async (req: Request, res: Response) => {
+  const attachmentId = Number(req.params.attachmentId);
+  const requesterId = Number(req.query.requesterId);
+  const reason = typeof req.body?.removalReason === "string" ? req.body.removalReason.trim() : "";
+  if (!Number.isInteger(attachmentId) || !Number.isInteger(requesterId) || attachmentId <= 0 || requesterId <= 0 || reason.length < 3 || reason.length > 500) { res.status(400).json({ error: "A removal reason of 3-500 characters is required." }); return; }
+  try {
+    const attachment = await getPrisma().attachment.findFirst({ where: { id: attachmentId, removedAt: null, ticket: { requesterId } } });
+    if (!attachment) { res.status(404).json({ error: "Attachment not found." }); return; }
+    const removed = await getPrisma().attachment.update({ where: { id: attachmentId }, data: { removedAt: new Date(), removalReason: reason }, select: { id: true, originalFilename: true, mimeType: true, sizeBytes: true, uploadedAt: true, removedAt: true, removalReason: true } });
+    res.status(200).json(removed);
+  } catch { res.status(500).json({ error: "Unable to remove attachment." }); }
 });
 
 export default app;

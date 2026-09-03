@@ -17,7 +17,7 @@ Use Vitest for unit and API tests, Supertest for HTTP behavior, Testing Library 
 | API-04 | API | AC-03, AC-04 | Owned list search/filter/sort/page | Correct items and pagination metadata | `server/tests/lab-02/my-tickets.api.test.ts` | Passed |
 | API-05 | API | AC-06, BR-10 | Cross-requester list/detail access | Other requester's data returns 404/empty | `server/tests/lab-02/my-tickets.api.test.ts` and `server/tests/lab-02/ticket-detail.api.test.ts` | Passed |
 | API-06 | API | BR-13 | Invalid page, page size, sort, and filter values | 400; no unsafe query | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
-| API-07 | API | AC-07, AC-08 | Valid, invalid, oversized, and sixth attachment | 201 valid; 400/413/409 invalid cases | `server/tests/lab-02/attachments.api.test.ts` | Planned |
+| API-07 | API | AC-07, AC-08 | Valid, invalid, oversized, and sixth attachment | 201 valid; 400/413/409 invalid cases | `server/tests/lab-02/attachments.api.test.ts` | Passed |
 | API-08 | API | AC-09, BR-19 | Soft removal with valid/invalid reason | Metadata retained; removed download returns 404 | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | API-09 | API | BR-18 | Cross-requester attachment operations | Upload/list/download/remove return 404 | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | API-10 | API | BR-17 | Storage/upload failure | Safe 500; ticket and form workflow remain recoverable | `server/tests/lab-02/attachments.api.test.ts` | Planned |
