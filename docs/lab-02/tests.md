@@ -29,8 +29,8 @@ Use Vitest for unit and API tests, Supertest for HTTP behavior, Testing Library 
 | UI-06 | UI | AC-03, AC-04, AC-05 | My Tickets controls and states | Search/filter/sort/page; loading/empty/no-results/error | `client/tests/lab-01/App.test.tsx` | Planned |
 | UI-07 | UI | AC-06 | Detail read-only and attachment states | Fields not editable; removed file has no download | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Planned |
 | STYLE-01 | UI style | AC-12 | Required classes, labels, focus, badges, errors | Zen Green and accessible states are present | `client/tests/lab-02/ui-style.test.tsx` | Passed |
-| RESP-01 | Responsive | AC-12 | Desktop, tablet, mobile layouts | No clipping, overlap, or horizontal overflow | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
-| E2E-01 | E2E | AC-01, AC-03 | Select requester, create, find ticket | Official number appears and ticket is listed | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
+| RESP-01 | Responsive | AC-12 | Desktop, tablet, mobile layouts | No clipping, overlap, or horizontal page overflow | `e2e/lab-02/requester-ticket-flow.spec.ts` | Passed |
+| E2E-01 | E2E | AC-01, AC-03 | Select requester, create, find ticket | Official number appears and ticket is listed | `e2e/lab-02/requester-ticket-flow.spec.ts` | Passed |
 | E2E-02 | E2E | AC-06, AC-11 | Switch requester and attempt cross-access | A tickets disappear; B cannot open A ticket | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 | E2E-03 | E2E | AC-07, AC-09 | Add, download, remove attachment | Active download works; removed download blocked | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 
@@ -80,8 +80,8 @@ Local executable results on `feature/lab2-7-tests-e2e`:
 - Client: 2 test files, 5 tests passed.
 - Server and client TypeScript checks passed.
 - Server and client production builds passed before this test-only increment.
-- Playwright E2E execution is deferred because Playwright is not installed in the repository yet.
+- Playwright E2E: 2 tests passed locally with `npm.cmd run test:e2e -- --reporter=line`.
 
 ## 7. Known Limitations or Deferred Tests
 
-Real authentication and production object storage are deferred to Lab 3. E2E tests require PostgreSQL, seeded data, both dev servers, an E2E runner, and browser installation. The E2E and screenshot rows remain planned until executed.
+Real authentication and production object storage are deferred to Lab 3. E2E-02 and E2E-03 remain planned because the current Playwright file covers creation and responsive overflow, not requester switching or attachment lifecycle.
