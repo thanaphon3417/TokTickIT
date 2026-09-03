@@ -14,7 +14,7 @@ Use Vitest for unit and API tests, Supertest for HTTP behavior, Testing Library 
 | API-01 | API | AC-01 | Create valid ticket | 201; one saved ticket; number and NEW returned | `server/tests/lab-02/create-ticket.api.test.ts` | Passed |
 | API-02 | API | AC-02, BR-06 | Required, trimmed, and boundary validation | 400 field errors; no save | `server/tests/lab-02/create-ticket.api.test.ts` | Passed |
 | API-03 | API | BR-07 | Invalid or inactive references | 400 safe error | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
-| API-04 | API | AC-03, AC-04 | Owned list search/filter/sort/page | Correct items and pagination metadata | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
+| API-04 | API | AC-03, AC-04 | Owned list search/filter/sort/page | Correct items and pagination metadata | `server/tests/lab-02/my-tickets.api.test.ts` | Passed |
 | API-05 | API | AC-06, BR-10 | Cross-requester list/detail access | Other requester's data returns 404/empty | `server/tests/lab-02/my-tickets.api.test.ts` and `server/tests/lab-02/ticket-detail.api.test.ts` | Planned |
 | API-06 | API | BR-13 | Invalid page, page size, sort, and filter values | 400; no unsafe query | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
 | API-07 | API | AC-07, AC-08 | Valid, invalid, oversized, and sixth attachment | 201 valid; 400/413/409 invalid cases | `server/tests/lab-02/attachments.api.test.ts` | Planned |
@@ -26,7 +26,7 @@ Use Vitest for unit and API tests, Supertest for HTTP behavior, Testing Library 
 | UI-03 | UI | AC-01, BR-09 | Create success and duplicate prevention | Busy button; one call; backend ticket number shown | `client/tests/lab-01/App.test.tsx` | Passed |
 | UI-04 | UI | AC-10 | Create API failure | Safe error; all values preserved; retry available | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
 | UI-05 | UI | AC-08 | Attachment validation and limit message | Invalid files rejected with specific messages | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
-| UI-06 | UI | AC-03, AC-04, AC-05 | My Tickets controls and states | Search/filter/sort/page; loading/empty/no-results/error | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
+| UI-06 | UI | AC-03, AC-04, AC-05 | My Tickets controls and states | Search/filter/sort/page; loading/empty/no-results/error | `client/tests/lab-01/App.test.tsx` | Planned |
 | UI-07 | UI | AC-06 | Detail read-only and attachment states | Fields not editable; removed file has no download | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Planned |
 | STYLE-01 | UI style | AC-12 | Required classes, labels, focus, badges, errors | Zen Green and accessible states are present | `client/tests/lab-02/ui-style.test.tsx` | Planned |
 | RESP-01 | Responsive | AC-12 | Desktop, tablet, mobile layouts | No clipping, overlap, or horizontal overflow | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |

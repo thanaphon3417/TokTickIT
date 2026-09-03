@@ -142,4 +142,51 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/api/tickets", async (req: Request, res: Response) => {
+  const requesterId = Number(req.query.requesterId);
+  const page = Number(req.query.page ?? 1);
+  const pageSize = Number(req.query.pageSize ?? 10);
+  const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+  const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined;
+  const requestedPriority = req.query.requestedPriority;
+  const currentStatus = req.query.currentStatus;
+  const sortBy = req.query.sortBy ?? "createdAt";
+  const sortOrder = req.query.sortOrder ?? "desc";
+  const sortFields = ["ticketNumber", "createdAt", "summary", "updatedAt"];
+
+  if (!Number.isInteger(requesterId) || requesterId <= 0 || !Number.isInteger(page) || page < 1 || ![5, 10, 20].includes(pageSize) || !sortFields.includes(String(sortBy)) || !["asc", "desc"].includes(String(sortOrder))) {
+    res.status(400).json({ error: "Invalid ticket list query." });
+    return;
+  }
+
+  const where = {
+    requesterId,
+    ...(search ? { OR: [{ ticketNumber: { contains: search, mode: "insensitive" as const } }, { summary: { contains: search, mode: "insensitive" as const } }] } : {}),
+    ...(categoryId !== undefined && Number.isInteger(categoryId) ? { categoryId } : {}),
+    ...(requestedPriority && ["LOW", "MEDIUM", "HIGH"].includes(String(requestedPriority)) ? { requestedPriority: String(requestedPriority) as "LOW" | "MEDIUM" | "HIGH" } : {}),
+    ...(currentStatus === "NEW" ? { currentStatus: "NEW" as const } : {}),
+  };
+
+  try {
+    const prisma = getPrisma();
+    const [totalItems, items] = await Promise.all([
+      prisma.ticket.count({ where }),
+      prisma.ticket.findMany({
+        where,
+        include: { category: true, relatedSystem: true },
+        orderBy: [{ [String(sortBy)]: String(sortOrder) }, { id: "desc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    res.status(200).json({
+      items,
+      pagination: { page, pageSize, totalItems, totalPages: Math.ceil(totalItems / pageSize) },
+    });
+  } catch {
+    res.status(500).json({ error: "Unable to retrieve tickets." });
+  }
+});
+
 export default app;
