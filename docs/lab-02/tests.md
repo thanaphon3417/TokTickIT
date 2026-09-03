@@ -11,8 +11,8 @@ Use Vitest for unit and API tests, Supertest for HTTP behavior, Testing Library 
 | Test ID | Type | Requirement / AC | What it tests | Expected result | Automated test file | Result |
 |---|---|---|---|---|---|---|
 | UNIT-01 | Unit | BR-01, AC-01 | Ticket number format and uniqueness | `TKT-YYYY-NNNNNN`; collision retries | `server/tests/lab-02/ticket-number.test.ts` | Planned |
-| API-01 | API | AC-01 | Create valid ticket | 201; one saved ticket; number and NEW returned | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
-| API-02 | API | AC-02, BR-06 | Required, trimmed, and boundary validation | 400 field errors; no save | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
+| API-01 | API | AC-01 | Create valid ticket | 201; one saved ticket; number and NEW returned | `server/tests/lab-02/create-ticket.api.test.ts` | Passed |
+| API-02 | API | AC-02, BR-06 | Required, trimmed, and boundary validation | 400 field errors; no save | `server/tests/lab-02/create-ticket.api.test.ts` | Passed |
 | API-03 | API | BR-07 | Invalid or inactive references | 400 safe error | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
 | API-04 | API | AC-03, AC-04 | Owned list search/filter/sort/page | Correct items and pagination metadata | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
 | API-05 | API | AC-06, BR-10 | Cross-requester list/detail access | Other requester's data returns 404/empty | `server/tests/lab-02/my-tickets.api.test.ts` and `server/tests/lab-02/ticket-detail.api.test.ts` | Planned |
@@ -23,7 +23,7 @@ Use Vitest for unit and API tests, Supertest for HTTP behavior, Testing Library 
 | API-10 | API | BR-17 | Storage/upload failure | Safe 500; ticket and form workflow remain recoverable | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | UI-01 | UI | FR-01, AC-11 | Requester selector loading, empty, failure, switch | Active users only; correct states; reload on switch | `client/tests/lab-01/App.test.tsx` | Planned |
 | UI-02 | UI | AC-02 | Create form field validation | Messages beside fields; API not called | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
-| UI-03 | UI | AC-01, BR-09 | Create success and duplicate prevention | Busy button; one call; backend ticket number shown | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
+| UI-03 | UI | AC-01, BR-09 | Create success and duplicate prevention | Busy button; one call; backend ticket number shown | `client/tests/lab-01/App.test.tsx` | Passed |
 | UI-04 | UI | AC-10 | Create API failure | Safe error; all values preserved; retry available | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
 | UI-05 | UI | AC-08 | Attachment validation and limit message | Invalid files rejected with specific messages | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
 | UI-06 | UI | AC-03, AC-04, AC-05 | My Tickets controls and states | Search/filter/sort/page; loading/empty/no-results/error | `client/tests/lab-02/MyTickets.test.tsx` | Planned |

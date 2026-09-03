@@ -16,6 +16,49 @@ export interface DevelopmentRequester {
   email: string;
 }
 
+export interface ReferenceItem {
+  id: number;
+  name: string;
+}
+
+export interface CreateTicketInput {
+  requesterId: number;
+  categoryId: number;
+  relatedSystemId: number;
+  summary: string;
+  description: string;
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH";
+}
+
+export async function getCategories(): Promise<ReferenceItem[]> {
+  const response = await fetch(`${API_URL}/api/categories`);
+  if (!response.ok) throw new Error("Unable to retrieve request categories.");
+  return response.json() as Promise<ReferenceItem[]>;
+}
+
+export async function getSystems(): Promise<ReferenceItem[]> {
+  const response = await fetch(`${API_URL}/api/systems`);
+  if (!response.ok) throw new Error("Unable to retrieve related systems.");
+  return response.json() as Promise<ReferenceItem[]>;
+}
+
+export async function createTicket(input: CreateTicketInput): Promise<{ ticketNumber: string; id: number }> {
+  const response = await fetch(`${API_URL}/api/tickets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    const error = new Error(body.error ?? "Unable to create ticket.") as Error & { fieldErrors?: Record<string, string> };
+    error.fieldErrors = body.fieldErrors;
+    throw error;
+  }
+
+  return response.json() as Promise<{ ticketNumber: string; id: number }>;
+}
+
 export async function getActiveRequesters(): Promise<DevelopmentRequester[]> {
   const response = await fetch(`${API_URL}/api/requesters/active`);
 
