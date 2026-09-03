@@ -28,7 +28,7 @@ Use Vitest for unit and API tests, Supertest for HTTP behavior, Testing Library 
 | UI-05 | UI | AC-08 | Attachment validation and limit message | Invalid files rejected with specific messages | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
 | UI-06 | UI | AC-03, AC-04, AC-05 | My Tickets controls and states | Search/filter/sort/page; loading/empty/no-results/error | `client/tests/lab-01/App.test.tsx` | Planned |
 | UI-07 | UI | AC-06 | Detail read-only and attachment states | Fields not editable; removed file has no download | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Planned |
-| STYLE-01 | UI style | AC-12 | Required classes, labels, focus, badges, errors | Zen Green and accessible states are present | `client/tests/lab-02/ui-style.test.tsx` | Planned |
+| STYLE-01 | UI style | AC-12 | Required classes, labels, focus, badges, errors | Zen Green and accessible states are present | `client/tests/lab-02/ui-style.test.tsx` | Passed |
 | RESP-01 | Responsive | AC-12 | Desktop, tablet, mobile layouts | No clipping, overlap, or horizontal overflow | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 | E2E-01 | E2E | AC-01, AC-03 | Select requester, create, find ticket | Official number appears and ticket is listed | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 | E2E-02 | E2E | AC-06, AC-11 | Switch requester and attempt cross-access | A tickets disappear; B cannot open A ticket | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
@@ -74,8 +74,14 @@ npx playwright test e2e/lab-02
 
 ## 6. Final Results
 
-Not run yet. Update this section with command output, pass counts, date, and branch after implementation and integration.
+Local executable results on `feature/lab2-7-tests-e2e`:
+
+- Server: 7 test files, 11 tests passed.
+- Client: 2 test files, 5 tests passed.
+- Server and client TypeScript checks passed.
+- Server and client production builds passed before this test-only increment.
+- Playwright E2E execution is deferred because Playwright is not installed in the repository yet.
 
 ## 7. Known Limitations or Deferred Tests
 
-Real authentication and production object storage are deferred to Lab 3. E2E tests require PostgreSQL, seeded data, both dev servers, and Playwright browser installation. No test may be marked passed until it is actually executed.
+Real authentication and production object storage are deferred to Lab 3. E2E tests require PostgreSQL, seeded data, both dev servers, an E2E runner, and browser installation. The E2E and screenshot rows remain planned until executed.
