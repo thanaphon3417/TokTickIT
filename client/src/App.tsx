@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createTicket, DevelopmentRequester, getActiveRequesters, getCategories, getSystems, getTickets, ReferenceItem, TicketListResponse } from "./api.js";
+import { createTicket, DevelopmentRequester, getActiveRequesters, getCategories, getSystems, getTicket, getTickets, ReferenceItem, TicketDetail, TicketListResponse } from "./api.js";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "loading" | "success" | "empty" | "error";
@@ -26,6 +26,8 @@ export default function App() {
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [ticketPage, setTicketPage] = useState(1);
+  const [detail, setDetail] = useState<TicketDetail | null>(null);
+  const [detailError, setDetailError] = useState("");
 
   async function loadRequesters() {
     setState("loading");
@@ -101,6 +103,15 @@ export default function App() {
   function openTickets() {
     setShowTickets(true);
     void loadTickets(1);
+  }
+
+  async function openDetail(ticketId: number) {
+    setDetailError("");
+    try {
+      setDetail(await getTicket(ticketId, Number(selectedId)));
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : "Unable to retrieve ticket.");
+    }
   }
 
   return (
@@ -187,8 +198,27 @@ export default function App() {
           {ticketLoading && <p role="status" className="mt-3">Loading tickets...</p>}
           {ticketError && <p role="alert" className="alert alert-danger mt-3">{ticketError}</p>}
           {!ticketLoading && !ticketError && tickets && tickets.items.length === 0 && <p className="alert alert-info mt-3">{search || filterCategory || filterPriority ? "No tickets match your search." : "You have no tickets yet."}</p>}
-          {!ticketLoading && tickets && tickets.items.length > 0 && <div className="table-responsive mt-3"><table className="table"><thead><tr><th>Ticket Number</th><th>Summary</th><th>Category</th><th>Priority</th><th>Status</th></tr></thead><tbody>{tickets.items.map((ticket) => <tr key={ticket.id}><td>{ticket.ticketNumber}</td><td>{ticket.summary}</td><td>{ticket.category.name}</td><td>{ticket.requestedPriority}</td><td>{ticket.currentStatus}</td></tr>)}</tbody></table></div>}
+          {!ticketLoading && tickets && tickets.items.length > 0 && <div className="table-responsive mt-3"><table className="table"><thead><tr><th>Ticket Number</th><th>Summary</th><th>Category</th><th>Priority</th><th>Status</th></tr></thead><tbody>{tickets.items.map((ticket) => <tr key={ticket.id}><td><button className="btn btn-link p-0" type="button" onClick={() => void openDetail(ticket.id)}>{ticket.ticketNumber}</button></td><td>{ticket.summary}</td><td>{ticket.category.name}</td><td>{ticket.requestedPriority}</td><td>{ticket.currentStatus}</td></tr>)}</tbody></table></div>}
           {tickets && tickets.pagination.totalPages > 1 && <div className="d-flex gap-2"><button className="btn btn-outline-secondary" type="button" disabled={ticketPage <= 1} onClick={() => void loadTickets(ticketPage - 1)}>Previous</button><span className="align-self-center">Page {ticketPage} of {tickets.pagination.totalPages}</span><button className="btn btn-outline-secondary" type="button" disabled={ticketPage >= tickets.pagination.totalPages} onClick={() => void loadTickets(ticketPage + 1)}>Next</button></div>}
+        </section>
+      )}
+
+      {detailError && <p className="alert alert-danger mt-3" role="alert">{detailError}</p>}
+      {detail && (
+        <section className="mt-4" aria-label="Ticket Detail">
+          <h2 className="h4">Ticket Detail</h2>
+          <dl>
+            <dt>Ticket Number</dt><dd>{detail.ticketNumber}</dd>
+            <dt>Ticket Date</dt><dd>{new Date(detail.ticketDate).toLocaleString()}</dd>
+            <dt>Requester</dt><dd>{detail.requester.name}</dd>
+            <dt>Category</dt><dd>{detail.category.name}</dd>
+            <dt>Related System</dt><dd>{detail.relatedSystem.name}</dd>
+            <dt>Requested Priority</dt><dd>{detail.requestedPriority}</dd>
+            <dt>Current Status</dt><dd>{detail.currentStatus}</dd>
+            <dt>Summary</dt><dd>{detail.summary}</dd>
+            <dt>Description</dt><dd>{detail.description}</dd>
+          </dl>
+          <p>Attachments will be available in the next Lab 2 increment.</p>
         </section>
       )}
 

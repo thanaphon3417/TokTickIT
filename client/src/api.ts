@@ -47,6 +47,27 @@ export interface TicketListResponse {
   pagination: { page: number; pageSize: number; totalItems: number; totalPages: number };
 }
 
+export interface TicketDetail {
+  id: number;
+  ticketNumber: string;
+  ticketDate: string;
+  summary: string;
+  description: string;
+  requestedPriority: string;
+  currentStatus: string;
+  createdAt: string;
+  updatedAt: string;
+  requester: DevelopmentRequester;
+  category: ReferenceItem;
+  relatedSystem: ReferenceItem;
+}
+
+export async function getTicket(ticketId: number, requesterId: number): Promise<TicketDetail> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}?requesterId=${requesterId}`);
+  if (!response.ok) throw new Error("Unable to retrieve ticket.");
+  return response.json() as Promise<TicketDetail>;
+}
+
 export async function getTickets(query: TicketListQuery): Promise<TicketListResponse> {
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {
