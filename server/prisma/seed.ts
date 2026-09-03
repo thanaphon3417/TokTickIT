@@ -22,7 +22,23 @@ async function main() {
     });
   }
 
-  console.log("Seeded TokTickIT categories.");
+  const requesters = [
+    { name: "Amina Lee", email: "amina.lee@example.com", isActive: true },
+    { name: "Ben Carter", email: "ben.carter@example.com", isActive: true },
+    { name: "Chalida Wong", email: "chalida.wong@example.com", isActive: true },
+    { name: "Daniel Kim", email: "daniel.kim@example.com", isActive: true },
+    { name: "Inactive Requester", email: "inactive@example.com", isActive: false },
+  ];
+
+  for (const requester of requesters) {
+    await prisma.developmentRequester.upsert({
+      where: { email: requester.email },
+      update: requester,
+      create: requester,
+    });
+  }
+
+  console.log("Seeded TokTickIT categories and development requesters.");
 }
 
 main()
