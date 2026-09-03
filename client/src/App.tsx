@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createTicket, DevelopmentRequester, getActiveRequesters, getCategories, getSystems, ReferenceItem } from "./api.js";
+import { createTicket, DevelopmentRequester, getActiveRequesters, getCategories, getSystems, getTickets, ReferenceItem, TicketListResponse } from "./api.js";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "loading" | "success" | "empty" | "error";
@@ -16,6 +16,16 @@ export default function App() {
   const [formError, setFormError] = useState("");
   const [ticketNumber, setTicketNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showTickets, setShowTickets] = useState(false);
+  const [tickets, setTickets] = useState<TicketListResponse | null>(null);
+  const [ticketLoading, setTicketLoading] = useState(false);
+  const [ticketError, setTicketError] = useState("");
+  const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterPriority, setFilterPriority] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [ticketPage, setTicketPage] = useState(1);
 
   async function loadRequesters() {
     setState("loading");
@@ -73,6 +83,24 @@ export default function App() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function loadTickets(page = ticketPage) {
+    setTicketLoading(true);
+    setTicketError("");
+    try {
+      setTickets(await getTickets({ requesterId: Number(selectedId), search, categoryId: filterCategory || undefined, requestedPriority: filterPriority || undefined, sortBy, sortOrder, page, pageSize: 5 }));
+      setTicketPage(page);
+    } catch (error) {
+      setTicketError(error instanceof Error ? error.message : "Unable to retrieve tickets.");
+    } finally {
+      setTicketLoading(false);
+    }
+  }
+
+  function openTickets() {
+    setShowTickets(true);
+    void loadTickets(1);
   }
 
   return (
@@ -138,6 +166,29 @@ export default function App() {
             <textarea className="form-control" id="description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} required minLength={10} maxLength={5000} rows={6} />
             <button className="btn btn-success mt-3" type="submit" disabled={submitting}>{submitting ? "Submitting..." : "Submit Ticket"}</button>
           </form>
+        </section>
+      )}
+
+      {showCreate && !showTickets && (
+        <button className="btn btn-outline-success mt-3" type="button" onClick={openTickets}>My Tickets</button>
+      )}
+
+      {showTickets && (
+        <section className="mt-4">
+          <h2 className="h4">My Tickets</h2>
+          <div className="row g-2">
+            <div className="col-md-5"><label className="form-label" htmlFor="ticket-search">Search</label><input className="form-control" id="ticket-search" value={search} onChange={(event) => setSearch(event.target.value)} /></div>
+            <div className="col-md-3"><label className="form-label" htmlFor="ticket-category">Category</label><select className="form-select" id="ticket-category" value={filterCategory} onChange={(event) => setFilterCategory(event.target.value)}><option value="">All</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></div>
+            <div className="col-md-3"><label className="form-label" htmlFor="ticket-priority">Priority</label><select className="form-select" id="ticket-priority" value={filterPriority} onChange={(event) => setFilterPriority(event.target.value)}><option value="">All</option><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option></select></div>
+            <div className="col-md-2"><label className="form-label" htmlFor="ticket-sort">Sort</label><select className="form-select" id="ticket-sort" value={sortBy} onChange={(event) => setSortBy(event.target.value)}><option value="createdAt">Created date</option><option value="updatedAt">Last updated</option><option value="ticketNumber">Ticket number</option><option value="summary">Summary</option></select></div>
+            <div className="col-md-2"><label className="form-label" htmlFor="ticket-sort-order">Order</label><select className="form-select" id="ticket-sort-order" value={sortOrder} onChange={(event) => setSortOrder(event.target.value as "asc" | "desc")}><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></div>
+            <div className="col-md-1 d-flex align-items-end"><button className="btn btn-success" type="button" onClick={() => void loadTickets(1)}>Find</button></div>
+          </div>
+          {ticketLoading && <p role="status" className="mt-3">Loading tickets...</p>}
+          {ticketError && <p role="alert" className="alert alert-danger mt-3">{ticketError}</p>}
+          {!ticketLoading && !ticketError && tickets && tickets.items.length === 0 && <p className="alert alert-info mt-3">{search || filterCategory || filterPriority ? "No tickets match your search." : "You have no tickets yet."}</p>}
+          {!ticketLoading && tickets && tickets.items.length > 0 && <div className="table-responsive mt-3"><table className="table"><thead><tr><th>Ticket Number</th><th>Summary</th><th>Category</th><th>Priority</th><th>Status</th></tr></thead><tbody>{tickets.items.map((ticket) => <tr key={ticket.id}><td>{ticket.ticketNumber}</td><td>{ticket.summary}</td><td>{ticket.category.name}</td><td>{ticket.requestedPriority}</td><td>{ticket.currentStatus}</td></tr>)}</tbody></table></div>}
+          {tickets && tickets.pagination.totalPages > 1 && <div className="d-flex gap-2"><button className="btn btn-outline-secondary" type="button" disabled={ticketPage <= 1} onClick={() => void loadTickets(ticketPage - 1)}>Previous</button><span className="align-self-center">Page {ticketPage} of {tickets.pagination.totalPages}</span><button className="btn btn-outline-secondary" type="button" disabled={ticketPage >= tickets.pagination.totalPages} onClick={() => void loadTickets(ticketPage + 1)}>Next</button></div>}
         </section>
       )}
 

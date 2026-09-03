@@ -30,6 +30,33 @@ export interface CreateTicketInput {
   requestedPriority: "LOW" | "MEDIUM" | "HIGH";
 }
 
+export interface TicketListQuery {
+  requesterId: number;
+  search?: string;
+  categoryId?: string;
+  requestedPriority?: string;
+  currentStatus?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export interface TicketListResponse {
+  items: Array<{ id: number; ticketNumber: string; summary: string; requestedPriority: string; currentStatus: string; createdAt: string; updatedAt: string; category: ReferenceItem; relatedSystem: ReferenceItem }>;
+  pagination: { page: number; pageSize: number; totalItems: number; totalPages: number };
+}
+
+export async function getTickets(query: TicketListQuery): Promise<TicketListResponse> {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined) params.set(key, String(value));
+  });
+  const response = await fetch(`${API_URL}/api/tickets?${params.toString()}`);
+  if (!response.ok) throw new Error("Unable to retrieve tickets.");
+  return response.json() as Promise<TicketListResponse>;
+}
+
 export async function getCategories(): Promise<ReferenceItem[]> {
   const response = await fetch(`${API_URL}/api/categories`);
   if (!response.ok) throw new Error("Unable to retrieve request categories.");
