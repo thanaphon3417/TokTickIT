@@ -12,3 +12,6 @@ server/prisma/*.db
 # logs & OS
 *.log
 .DS_Store
+# Playwright execution output; committed visual evidence belongs under artifacts/lab-02/screenshots/.
+test-results/
+playwright-report/

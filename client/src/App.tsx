@@ -14,6 +14,7 @@ export default function App() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ categoryId: "", relatedSystemId: "", summary: "", description: "", requestedPriority: "MEDIUM" as "LOW" | "MEDIUM" | "HIGH" });
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [ticketNumber, setTicketNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showTickets, setShowTickets] = useState(false);
@@ -66,8 +67,27 @@ export default function App() {
     }
   }
 
+  function handleChangeRequester() {
+    localStorage.removeItem("toktickit.requesterId");
+    setSelectedId("");
+    setShowCreate(false);
+    setShowTickets(false);
+    setTickets(null);
+    setDetail(null);
+    setTicketNumber("");
+    setFormError("");
+    setAttachmentError("");
+  }
+
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const nextFieldErrors: Record<string, string> = {};
+    if (!form.categoryId) nextFieldErrors.categoryId = "Category is required.";
+    if (!form.relatedSystemId) nextFieldErrors.relatedSystemId = "Related system is required.";
+    if (form.summary.trim().length < 5 || form.summary.trim().length > 120) nextFieldErrors.summary = "Summary must be 5-120 characters.";
+    if (form.description.trim().length < 10 || form.description.trim().length > 5000) nextFieldErrors.description = "Description must be 10-5000 characters.";
+    setFieldErrors(nextFieldErrors);
+    if (Object.keys(nextFieldErrors).length > 0) return;
     setSubmitting(true);
     setFormError("");
     setTicketNumber("");
@@ -170,27 +190,32 @@ export default function App() {
       {showCreate && (
         <section className="mt-4">
           <p>Requester ID: <strong>{selectedId}</strong></p>
+          <button className="btn btn-outline-success mb-3" type="button" onClick={handleChangeRequester}>Change Requester</button>
           {ticketNumber ? <p className="alert alert-success" role="status">Ticket created: <strong>{ticketNumber}</strong></p> : null}
           {formError ? <p className="alert alert-danger" role="alert">{formError}</p> : null}
-          <form onSubmit={handleCreate}>
+          <form noValidate onSubmit={handleCreate}>
             <label className="form-label" htmlFor="category">Category *</label>
-            <select className="form-select" id="category" value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: event.target.value })} required>
+            <select className={`form-select ${fieldErrors.categoryId ? "is-invalid" : ""}`} id="category" value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: event.target.value })} aria-describedby={fieldErrors.categoryId ? "category-error" : undefined} required>
               <option value="">Select a category</option>
               {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
             </select>
+            {fieldErrors.categoryId && <p id="category-error" className="text-danger mb-0">{fieldErrors.categoryId}</p>}
             <label className="form-label mt-3" htmlFor="system">Related System *</label>
-            <select className="form-select" id="system" value={form.relatedSystemId} onChange={(event) => setForm({ ...form, relatedSystemId: event.target.value })} required>
+            <select className={`form-select ${fieldErrors.relatedSystemId ? "is-invalid" : ""}`} id="system" value={form.relatedSystemId} onChange={(event) => setForm({ ...form, relatedSystemId: event.target.value })} aria-describedby={fieldErrors.relatedSystemId ? "system-error" : undefined} required>
               <option value="">Select a system</option>
               {systems.map((system) => <option key={system.id} value={system.id}>{system.name}</option>)}
             </select>
+            {fieldErrors.relatedSystemId && <p id="system-error" className="text-danger mb-0">{fieldErrors.relatedSystemId}</p>}
             <label className="form-label mt-3" htmlFor="priority">Requested Priority *</label>
             <select className="form-select" id="priority" value={form.requestedPriority} onChange={(event) => setForm({ ...form, requestedPriority: event.target.value as "LOW" | "MEDIUM" | "HIGH" })}>
               <option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option>
             </select>
             <label className="form-label mt-3" htmlFor="summary">Summary *</label>
-            <input className="form-control" id="summary" value={form.summary} onChange={(event) => setForm({ ...form, summary: event.target.value })} required minLength={5} maxLength={120} />
+            <input className={`form-control ${fieldErrors.summary ? "is-invalid" : ""}`} id="summary" value={form.summary} onChange={(event) => setForm({ ...form, summary: event.target.value })} aria-describedby={fieldErrors.summary ? "summary-error" : undefined} required minLength={5} maxLength={120} />
+            {fieldErrors.summary && <p id="summary-error" className="text-danger mb-0">{fieldErrors.summary}</p>}
             <label className="form-label mt-3" htmlFor="description">Description *</label>
-            <textarea className="form-control" id="description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} required minLength={10} maxLength={5000} rows={6} />
+            <textarea className={`form-control ${fieldErrors.description ? "is-invalid" : ""}`} id="description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} aria-describedby={fieldErrors.description ? "description-error" : undefined} required minLength={10} maxLength={5000} rows={6} />
+            {fieldErrors.description && <p id="description-error" className="text-danger mb-0">{fieldErrors.description}</p>}
             <button className="btn btn-success mt-3" type="submit" disabled={submitting}>{submitting ? "Submitting..." : "Submit Ticket"}</button>
           </form>
         </section>
@@ -235,7 +260,8 @@ export default function App() {
             <dt>Description</dt><dd>{detail.description}</dd>
           </dl>
           <h3 className="h5">Attachments</h3>
-          <input type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleAttachment(file); }} />
+          <label className="form-label" htmlFor="attachment-file">Add attachment</label>
+          <input id="attachment-file" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleAttachment(file); }} />
           {attachmentError && <p className="alert alert-danger mt-2" role="alert">{attachmentError}</p>}
           <ul>{detail.attachments.map((attachment) => <li key={attachment.id}>{attachment.originalFilename} ({attachment.sizeBytes} bytes) {attachment.removedAt ? <strong>Removed: {attachment.removalReason}</strong> : <><a className="btn btn-link" href={getAttachmentDownloadUrl(attachment.id, Number(selectedId))}>Download</a><button className="btn btn-link" type="button" onClick={() => void handleRemoveAttachment(attachment.id)}>Remove</button></>}</li>)}</ul>
         </section>

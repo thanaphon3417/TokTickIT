@@ -1,0 +1,28 @@
+{
+  "name": "toktickit",
+  "version": "1.0.0",
+  "description": "TokTickIT is an IT service desk application. Lab 1 delivers a small full-stack vertical slice that proves the frontend, REST API, Prisma ORM, and PostgreSQL database work together.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Run server and client tests from their package directories\"",
+    "test:e2e": "playwright test e2e/lab-02"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thanaphon3417/TokTickIT.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/thanaphon3417/TokTickIT/issues"
+  },
+  "homepage": "https://github.com/thanaphon3417/TokTickIT#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

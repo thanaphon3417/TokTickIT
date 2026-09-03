@@ -1,5 +1,7 @@
 # TokTickIT
 
+Lab 2 delivers the requester-facing ticket MVP: development requester selection, ticket creation, requester-owned ticket lists and detail, and permitted attachment upload, download, and soft removal. The selector is a testing mechanism, not authentication.
+
 TokTickIT is an IT service desk application. Lab 1 delivers a small full-stack vertical slice that proves the frontend, REST API, Prisma ORM, and PostgreSQL database work together.
 
 Clicking **Check System** in the browser calls the backend health endpoint and retrieves the supported request categories from PostgreSQL.
@@ -92,7 +94,7 @@ cd client
 npm.cmd run dev
 ```
 
-Open `http://localhost:5173` and click **Check System**. A successful check shows an Online status and the four categories. If the API or database is unavailable, the page shows an Offline status and a useful error message.
+Open `http://localhost:5173`, select an active Development Requester, and continue to Create Ticket. Use **My Tickets** to search, filter, sort, page through, and open only that requester's tickets. Use **Change Requester** to test requester ownership. If the API or database is unavailable, the page shows a safe error and preserves entered ticket form values.
 
 ## REST API
 
@@ -140,6 +142,15 @@ Run client UI tests:
 cd client
 npm.cmd test
 ```
+
+Run the Lab 2 Playwright flow after both backend and frontend are running:
+
+```powershell
+cd ..
+npm.cmd run test:e2e -- --reporter=line
+```
+
+The committed visual evidence for the Lab 2 submission belongs under `artifacts/lab-02/screenshots/`; temporary Playwright output is ignored.
 
 ## Repository structure
 

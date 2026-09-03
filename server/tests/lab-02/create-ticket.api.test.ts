@@ -35,4 +35,17 @@ describe("POST /api/tickets", () => {
     expect(response.body.fieldErrors.description).toBeDefined();
     expect(response.body.fieldErrors.requestedPriority).toBeDefined();
   });
+
+  it("rejects inactive or missing reference data", async () => {
+    const response = await request(app).post("/api/tickets").send({
+      requesterId: 999999,
+      categoryId: 999999,
+      relatedSystemId: 999999,
+      summary: "Invalid reference ticket",
+      description: "This request deliberately uses missing reference data.",
+      requestedPriority: "MEDIUM",
+    });
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("One or more selected references are invalid.");
+  });
 });
