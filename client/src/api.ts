@@ -1,5 +1,9 @@
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
+export function getAttachmentDownloadUrl(attachmentId: number, requesterId: number): string {
+  return `${API_URL}/api/attachments/${attachmentId}/download?requesterId=${requesterId}`;
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -60,6 +64,31 @@ export interface TicketDetail {
   requester: DevelopmentRequester;
   category: ReferenceItem;
   relatedSystem: ReferenceItem;
+  attachments: AttachmentMetadata[];
+}
+
+export interface AttachmentMetadata {
+  id: number;
+  originalFilename: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  removedAt: string | null;
+  removalReason: string | null;
+}
+
+export async function uploadAttachment(ticketId: number, requesterId: number, file: File): Promise<AttachmentMetadata> {
+  const body = new FormData();
+  body.append("file", file);
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments?requesterId=${requesterId}`, { method: "POST", body });
+  if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error ?? "Unable to upload attachment.");
+  return response.json() as Promise<AttachmentMetadata>;
+}
+
+export async function removeAttachment(attachmentId: number, requesterId: number, removalReason: string): Promise<AttachmentMetadata> {
+  const response = await fetch(`${API_URL}/api/attachments/${attachmentId}?requesterId=${requesterId}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ removalReason }) });
+  if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error ?? "Unable to remove attachment.");
+  return response.json() as Promise<AttachmentMetadata>;
 }
 
 export async function getTicket(ticketId: number, requesterId: number): Promise<TicketDetail> {
