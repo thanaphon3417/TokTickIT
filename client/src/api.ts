@@ -1,5 +1,9 @@
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
+export function getAttachmentDownloadUrl(attachmentId: number, requesterId: number): string {
+  return `${API_URL}/api/attachments/${attachmentId}/download?requesterId=${requesterId}`;
+}
+
 export interface Category {
   id: number;
   name: string;

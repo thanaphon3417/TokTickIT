@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createTicket, DevelopmentRequester, getActiveRequesters, getCategories, getSystems, getTicket, getTickets, ReferenceItem, TicketDetail, TicketListResponse, removeAttachment, uploadAttachment } from "./api.js";
+import { createTicket, DevelopmentRequester, getActiveRequesters, getAttachmentDownloadUrl, getCategories, getSystems, getTicket, getTickets, ReferenceItem, TicketDetail, TicketListResponse, removeAttachment, uploadAttachment } from "./api.js";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "loading" | "success" | "empty" | "error";
@@ -237,7 +237,7 @@ export default function App() {
           <h3 className="h5">Attachments</h3>
           <input type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleAttachment(file); }} />
           {attachmentError && <p className="alert alert-danger mt-2" role="alert">{attachmentError}</p>}
-          <ul>{detail.attachments.map((attachment) => <li key={attachment.id}>{attachment.originalFilename} ({attachment.sizeBytes} bytes) {attachment.removedAt ? <strong>Removed: {attachment.removalReason}</strong> : <button className="btn btn-link" type="button" onClick={() => void handleRemoveAttachment(attachment.id)}>Remove</button>}</li>)}</ul>
+          <ul>{detail.attachments.map((attachment) => <li key={attachment.id}>{attachment.originalFilename} ({attachment.sizeBytes} bytes) {attachment.removedAt ? <strong>Removed: {attachment.removalReason}</strong> : <><a className="btn btn-link" href={getAttachmentDownloadUrl(attachment.id, Number(selectedId))}>Download</a><button className="btn btn-link" type="button" onClick={() => void handleRemoveAttachment(attachment.id)}>Remove</button></>}</li>)}</ul>
         </section>
       )}
 
