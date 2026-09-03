@@ -32,4 +32,10 @@ describe("GET /api/tickets", () => {
     expect(response.status).toBe(200);
     expect(response.body.items).toHaveLength(0);
   });
+
+  it("rejects invalid page and sort parameters", async () => {
+    const response = await request(app).get("/api/tickets?requesterId=1&page=0&pageSize=7&sortBy=unsafe&sortOrder=sideways");
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("Invalid ticket list query.");
+  });
 });

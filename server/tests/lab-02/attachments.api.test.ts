@@ -73,4 +73,16 @@ describe("Attachment lifecycle", () => {
     const forbidden = await request(app).get(`/api/tickets/${ticketId}/attachments?requesterId=2`);
     expect(forbidden.status).toBe(404);
   });
+
+  it("rejects an invalid removal reason and hides every attachment operation from another requester", async () => {
+    const ticketId = await createOwnedTicket();
+    const upload = await request(app)
+      .post(`/api/tickets/${ticketId}/attachments?requesterId=1`)
+      .attach("file", Buffer.from("private"), { filename: "private.pdf", contentType: "application/pdf" });
+    expect(upload.status).toBe(201);
+    expect((await request(app).delete(`/api/attachments/${upload.body.id}?requesterId=1`).send({ removalReason: "x" })).status).toBe(400);
+    expect((await request(app).post(`/api/tickets/${ticketId}/attachments?requesterId=2`).attach("file", Buffer.from("x"), { filename: "x.pdf", contentType: "application/pdf" })).status).toBe(404);
+    expect((await request(app).get(`/api/attachments/${upload.body.id}/download?requesterId=2`)).status).toBe(404);
+    expect((await request(app).delete(`/api/attachments/${upload.body.id}?requesterId=2`).send({ removalReason: "Not my file" })).status).toBe(404);
+  });
 });

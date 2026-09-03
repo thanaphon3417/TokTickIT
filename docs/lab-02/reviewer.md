@@ -1,32 +1,61 @@
 # Lab 2 Peer Review Record
 
 **Author:** Thanaphon Ratchatakulpong — 67070503417 — GitHub: @thanaphon3417
-**Peer reviewer:** Add the actual reviewer identity before submission.
+**Peer reviewer:**
+Siripitch Chayabutra — 67070503440 — GitHub: @siripitch-c (Review me)
+**Peer reviewer:**
+Tana Udompornkul — 67070503418 — GitHub: @Tana4Work (I review)
 
 ## Pull Requests I authored
 
 | PR | Branch | Target | Reviewer | Verdict | Link |
 |---|---|---|---|---|---|
-| #19 | `feature/lab2-1-specification` | `lab2-staging` | Add actual reviewer | Approved / merged | https://github.com/thanaphon3417/TokTickIT/pull/19 |
-| #21 | `feature/lab2-2-requester-context` | `lab2-staging` | Add actual reviewer | Approved / merged | https://github.com/thanaphon3417/TokTickIT/pull/21 |
-| #22 | `feature/lab2-3-ticket-creation` | `lab2-staging` | Add actual reviewer | Approved / merged | https://github.com/thanaphon3417/TokTickIT/pull/22 |
-| #23 | `feature/lab2-4-my-tickets` | `lab2-staging` | Add actual reviewer | Approved / merged | https://github.com/thanaphon3417/TokTickIT/pull/23 |
-| #24 | `feature/lab2-5-ticket-detail` | `lab2-staging` | Add actual reviewer | Approved / merged | https://github.com/thanaphon3417/TokTickIT/pull/24 |
-| #25 | `feature/lab2-6-attachments` | `lab2-staging` | Add actual reviewer | Approved / merged | https://github.com/thanaphon3417/TokTickIT/pull/25 |
-| TBD | `feature/lab2-7-tests-e2e` | `lab2-staging` | Add actual reviewer | Pending | Add PR link |
+| #19 | `feature/lab2-1-specification` | `lab2-staging` | @siripitch-c | Approved / merged 2026-09-03 | https://github.com/thanaphon3417/TokTickIT/pull/19 |
+| #21 | `feature/lab2-2-requester-context` | `lab2-staging` | @siripitch-c | Approved / merged 2026-09-03 | https://github.com/thanaphon3417/TokTickIT/pull/21 |
+| #22 | `feature/lab2-3-ticket-creation` | `lab2-staging` | @siripitch-c | Approved / merged 2026-09-03 | https://github.com/thanaphon3417/TokTickIT/pull/22 |
+| #23 | `feature/lab2-4-my-tickets` | `lab2-staging` | @siripitch-c | Approved / merged 2026-09-03 | https://github.com/thanaphon3417/TokTickIT/pull/23 |
+| #24 | `feature/lab2-5-ticket-detail` | `lab2-staging` | @siripitch-c | Approved / merged 2026-09-03 | https://github.com/thanaphon3417/TokTickIT/pull/24 |
+| #25 | `feature/lab2-6-attachments` | `lab2-staging` | @siripitch-c | Approved / merged 2026-09-03 | https://github.com/thanaphon3417/TokTickIT/pull/25 |
+| Not yet created | `feature/lab2-7-tests-e2e` | `lab2-staging` | Pending peer reviewer | Pending | Not yet created |
 
-## Review evidence
+## Review evidence for my PRs
 
-For each PR, add the actual comments given, comments received, responses, approval, and merge date. Do not mark pending review as approved.
+| PR | Actual review comment | Author response | Approval and merge evidence |
+|---|---|---|---|
+| #19 | @siripitch-c: “Everything looks good to me. Good job.” | @thanaphon3417: “Thank you so much.” | Approved 2026-09-03; merged 2026-09-03. |
+| #21 | @siripitch-c: “Everything looks good to me. Good job.” | @thanaphon3417: “Thank you very much.” | Approved 2026-09-03; merged 2026-09-03. |
+| #22 | @siripitch-c: “Everything looks good to me. Good job.” | @thanaphon3417: “Thank you for checking.” | Approved 2026-09-03; merged 2026-09-03. |
+| #23 | @siripitch-c: “Everything looks good to me. Good job.” | @thanaphon3417: “Thank you for your time.” | Approved 2026-09-03; merged 2026-09-03. |
+| #24 | @siripitch-c: “Nice work. Everything seem fine.” | @thanaphon3417: “Thank you for checking.” | Approved 2026-09-03; merged 2026-09-03. |
+| #25 | @siripitch-c: “Everything looks fine to me. Nice work.” | @thanaphon3417: “Thank you so much.” | Approved 2026-09-03; merged 2026-09-03. |
+| PR7 (not yet created) | Pending: no GitHub pull request exists yet. | Pending. | Pending. |
 
 ## Pull Requests I reviewed
 
-Add the partner PR number, review comment, partner response, and approval status here.
+| PR | Branch | Target | Reviewed | Verdict | Link |
+|---|---|---|---|---|---|
+| #19 | `feature/lab2-01-specification-test-plan` | `lab2-staging` | @Tana4Work | Approved / merged 2026-09-01 | https://github.com/Tana4Work/toktickit/pull/19 |
+| #27 | `feature/lab2-02-reference-data-requester` | `lab2-staging` | @Tana4Work | Approved / merged 2026-09-01 | https://github.com/Tana4Work/toktickit/pull/27 |
+| #28 | `feature/lab2-03-create-ticket` | `lab2-staging` | @Tana4Work | Approved / merged 2026-09-01 | https://github.com/Tana4Work/toktickit/pull/28 |
+| #29 | `feature/lab2-04-my-tickets` | `lab2-staging` | @Tana4Work | Approved / merged 2026-09-03 | https://github.com/Tana4Work/toktickit/pull/29 |
+| #30 | `feature/lab2-05-ticket-detail` | `lab2-staging` | @Tana4Work | Approved / merged 2026-09-03 | https://github.com/Tana4Work/toktickit/pull/30 |
+| #31 | `feature/lab2-06-attachment-management` | `lab2-staging` | @Tana4Work | Approved / merged 2026-09-03 | https://github.com/Tana4Work/toktickit/pull/31 |
+| Not yet created | `feature/lab2-07-final-testing-delivery` | `lab2-staging` | @Tana4Work | Pending | Not yet created |
+
+## Review evidence for PRs I reviewed
+
+| PR | My review comment | Author response | Approval and merge evidence |
+|---|---|---|---|
+| #19 | @thanaphon3417: “I checked it already. No problem at all, keep up the work!” | @Tana4Work: “Thank you my brother” | Approved 2026-09-01; merged 2026-09-01. |
+| #27 | @thanaphon3417: “Well done!” | @Tana4Work: “Thank you my brother” | Approved 2026-09-01; merged 2026-09-01. |
+| #28 | @thanaphon3417: “Approved! Good Job!” | @Tana4Work: “Thank you my brother” | Approved 2026-09-01; merged 2026-09-01. |
+| #29 | @thanaphon3417: “All have been checked. No problem at all.” | @Tana4Work: “Thank you my brother” | Approved 2026-09-03; merged 2026-09-03. |
+| #30 | @thanaphon3417: “Checked. Good Work!” | @Tana4Work: “Thank you my brother” | Approved 2026-09-03; merged 2026-09-03. |
+| #31 | @thanaphon3417: “Approved! Good Job!” | @Tana4Work: “Thanks my brother” | Approved 2026-09-03; merged 2026-09-03. |
+| PR7 (not yet created) | Pending: no GitHub pull request exists yet. | Pending. | Pending. |
 
 ## Final review checklist
 
-- [ ] Reviewer identity is complete.
-- [ ] Every Lab 2 PR link is correct.
-- [ ] Comments and responses are copied from GitHub.
-- [ ] All required approvals are recorded.
+- [x] Reviewer identity and evidence for PRs #19, #21–#25 are recorded from GitHub.
+- [ ] PR7 link, peer review, response, approval, and merge evidence are pending the real PR workflow.
 - [ ] Final release PR link is added after integration.

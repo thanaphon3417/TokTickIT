@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import multer from "multer";
 import { randomUUID } from "node:crypto";
+import { generateTicketNumber } from "./ticket-number.js";
 import { getPrisma } from "./prisma.js";
 // getPrisma() is your lazy database handle. Call it INSIDE a route when you
 // need the DB (Issue 4). It is intentionally unused until then.
@@ -123,13 +124,12 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
       return;
     }
 
-    const year = new Date().getFullYear();
     let ticket;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         ticket = await prisma.ticket.create({
           data: {
-            ticketNumber: `TKT-${year}-${Date.now().toString().slice(-6)}`,
+            ticketNumber: generateTicketNumber(),
             requesterId: parsedRequesterId,
             categoryId: parsedCategoryId,
             relatedSystemId: parsedRelatedSystemId,
