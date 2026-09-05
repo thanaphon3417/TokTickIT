@@ -16,7 +16,7 @@ Tana Udompornkul — 67070503418 — GitHub: @Tana4Work (I review)
 | #23 | `feature/lab2-4-my-tickets` | `lab2-staging` | @siripitch-c | Approved / merged 2026-09-03 | https://github.com/thanaphon3417/TokTickIT/pull/23 |
 | #24 | `feature/lab2-5-ticket-detail` | `lab2-staging` | @siripitch-c | Approved / merged 2026-09-03 | https://github.com/thanaphon3417/TokTickIT/pull/24 |
 | #25 | `feature/lab2-6-attachments` | `lab2-staging` | @siripitch-c | Approved / merged 2026-09-03 | https://github.com/thanaphon3417/TokTickIT/pull/25 |
-| #26 | `feature/lab2-7-tests-e2e` | `lab2-staging` | @siripitch-c | Approved / merged 2026-09-04 |
+| #26 | `feature/lab2-7-tests-e2e` | `lab2-staging` | @siripitch-c | Approved / merged 2026-09-04 | https://github.com/thanaphon3417/TokTickIT/pull/26 |
 
 ## Review evidence for my PRs
 
