@@ -40,7 +40,7 @@ Tana Udompornkul — 67070503418 — GitHub: @Tana4Work (I review)
 | #29 | `feature/lab2-04-my-tickets` | `lab2-staging` | @Tana4Work | Approved / merged 2026-09-03 | https://github.com/Tana4Work/toktickit/pull/29 |
 | #30 | `feature/lab2-05-ticket-detail` | `lab2-staging` | @Tana4Work | Approved / merged 2026-09-03 | https://github.com/Tana4Work/toktickit/pull/30 |
 | #31 | `feature/lab2-06-attachment-management` | `lab2-staging` | @Tana4Work | Approved / merged 2026-09-03 | https://github.com/Tana4Work/toktickit/pull/31 |
-| #35 | `feature/lab2-07-final-testing-delivery` | `lab2-staging` | @Tana4Work | Approved / merged 2026-09-04 | https://github.com/Tana4Work/toktickit/pull/35 |
+| #36 | `feature/lab2-07-final-testing-delivery` | `lab2-staging` | @Tana4Work | Approved / merged 2026-09-05 | https://github.com/Tana4Work/toktickit/pull/36 |
 
 ## Review evidence for PRs I reviewed
 
@@ -52,4 +52,4 @@ Tana Udompornkul — 67070503418 — GitHub: @Tana4Work (I review)
 | #29 | @thanaphon3417: “All have been checked. No problem at all.” | @Tana4Work: “Thank you my brother” | Approved 2026-09-03; merged 2026-09-03. |
 | #30 | @thanaphon3417: “Checked. Good Work!” | @Tana4Work: “Thank you my brother” | Approved 2026-09-03; merged 2026-09-03. |
 | #31 | @thanaphon3417: “Approved! Good Job!” | @Tana4Work: “Thanks my brother” | Approved 2026-09-03; merged 2026-09-03. |
-| #35 | @thanaphon3417: “Approved! Good Job!” | @Tana4Work: “Thanks my brother” | Approved 2026-09-04; merged 2026-09-04. |
+| #36 | @thanaphon3417: “Approved! Good Job!” | @Tana4Work: “Thanks my brother” | Approved 2026-09-05; merged 2026-09-05. |
