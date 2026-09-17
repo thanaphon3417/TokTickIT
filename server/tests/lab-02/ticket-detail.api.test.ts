@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
+import { requesterAgent } from "../lab-03/requester-test-helper.js";
 
 describe("GET /api/tickets/:ticketId", () => {
   it("returns an owned ticket as read-only detail data", async () => {
-    const created = await request(app).post("/api/tickets").send({
+    const agent = await requesterAgent();
+    const created = await agent.post("/api/tickets").send({
       requesterId: 1,
       categoryId: 1,
       relatedSystemId: 1,
@@ -13,7 +15,7 @@ describe("GET /api/tickets/:ticketId", () => {
       requestedPriority: "MEDIUM",
     });
 
-    const response = await request(app).get(`/api/tickets/${created.body.id}?requesterId=1`);
+    const response = await agent.get(`/api/tickets/${created.body.id}?requesterId=1`);
 
     expect(response.status).toBe(200);
     expect(response.body.ticketNumber).toBe(created.body.ticketNumber);
@@ -22,7 +24,8 @@ describe("GET /api/tickets/:ticketId", () => {
   });
 
   it("hides a ticket from another requester", async () => {
-    const created = await request(app).post("/api/tickets").send({
+    const owner = await requesterAgent();
+    const created = await owner.post("/api/tickets").send({
       requesterId: 1,
       categoryId: 1,
       relatedSystemId: 1,
@@ -31,7 +34,7 @@ describe("GET /api/tickets/:ticketId", () => {
       requestedPriority: "LOW",
     });
 
-    const response = await request(app).get(`/api/tickets/${created.body.id}?requesterId=2`);
+    const response = await (await requesterAgent("ben.carter@example.com")).get(`/api/tickets/${created.body.id}?requesterId=1`);
 
     expect(response.status).toBe(404);
     expect(response.body.error).toBe("Ticket not found.");

@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
+import { requesterAgent } from "../lab-03/requester-test-helper.js";
 
 describe("POST /api/tickets", () => {
   it("creates a ticket with backend defaults and generated number", async () => {
-    const response = await request(app).post("/api/tickets").send({
+    const response = await (await requesterAgent()).post("/api/tickets").send({
       requesterId: 1,
       categoryId: 1,
       relatedSystemId: 1,
@@ -21,7 +22,7 @@ describe("POST /api/tickets", () => {
   });
 
   it("rejects invalid ticket fields without creating a ticket", async () => {
-    const response = await request(app).post("/api/tickets").send({
+    const response = await (await requesterAgent()).post("/api/tickets").send({
       requesterId: 1,
       categoryId: 1,
       relatedSystemId: 1,
@@ -37,7 +38,7 @@ describe("POST /api/tickets", () => {
   });
 
   it("rejects inactive or missing reference data", async () => {
-    const response = await request(app).post("/api/tickets").send({
+    const response = await (await requesterAgent()).post("/api/tickets").send({
       requesterId: 999999,
       categoryId: 999999,
       relatedSystemId: 999999,
