@@ -83,6 +83,28 @@ export interface TicketListResponse {
   pagination: { page: number; pageSize: number; totalItems: number; totalPages: number };
 }
 
+export type StaffQueueTicket = TicketListResponse["items"][number] & {
+  requester: DevelopmentRequester;
+  itPriority: "LOW" | "MEDIUM" | "HIGH";
+  owner: { id: number; name: string } | null;
+};
+export interface StaffQueueResponse { items: StaffQueueTicket[]; pagination: TicketListResponse["pagination"]; }
+export interface StaffQueueQuery { search?: string; categoryId?: string; requestedPriority?: string; currentStatus?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number; }
+export type StaffTicketDetail = StaffQueueTicket & { description: string; ticketDate: string; relatedSystem: ReferenceItem };
+
+export async function getStaffTickets(query: StaffQueueQuery): Promise<StaffQueueResponse> {
+  const params = new URLSearchParams(); Object.entries(query).forEach(([key, value]) => { if (value !== undefined) params.set(key, String(value)); });
+  const response = await fetch(`${API_URL}/api/staff/tickets?${params}`, sessionOptions);
+  if (!response.ok) return apiError(response, "Unable to retrieve the staff ticket queue.");
+  return response.json() as Promise<StaffQueueResponse>;
+}
+
+export async function getStaffTicket(ticketId: number): Promise<StaffTicketDetail> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketId}`, sessionOptions);
+  if (!response.ok) return apiError(response, "Unable to retrieve the staff ticket.");
+  return response.json() as Promise<StaffTicketDetail>;
+}
+
 export interface TicketDetail {
   id: number;
   ticketNumber: string;

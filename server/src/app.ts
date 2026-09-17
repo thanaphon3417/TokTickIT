@@ -27,6 +27,14 @@ async function requireRequester(req: Request, res: Response): Promise<number | n
   return requester.id;
 }
 
+async function requireStaff(req: Request, res: Response): Promise<boolean> {
+  const user = await currentUser(req);
+  if (!user) { res.status(401).json({ error: "Authentication is required." }); return false; }
+  if (user.role !== "IT_STAFF") { res.status(403).json({ error: "IT Staff access is required." }); return false; }
+  if (user.mustChangePassword) { res.status(403).json({ error: "A password change is required before using the application." }); return false; }
+  return true;
+}
+
 app.post("/api/auth/login", async (req: Request, res: Response) => {
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   const password = typeof req.body?.password === "string" ? req.body.password : "";
@@ -140,6 +148,50 @@ app.get("/api/systems", async (_req: Request, res: Response) => {
   }
 });
 
+app.get("/api/staff/tickets", async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const page = Number(req.query.page ?? 1);
+  const pageSize = Number(req.query.pageSize ?? 10);
+  const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+  const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined;
+  const requestedPriority = req.query.requestedPriority;
+  const currentStatus = req.query.currentStatus;
+  const sortBy = String(req.query.sortBy ?? "updatedAt");
+  const sortOrder = String(req.query.sortOrder ?? "desc");
+  const sortFields = ["ticketNumber", "createdAt", "updatedAt", "summary", "requestedPriority", "itPriority", "currentStatus"];
+  if (!Number.isInteger(page) || page < 1 || ![5, 10, 20].includes(pageSize) || !sortFields.includes(sortBy) || !["asc", "desc"].includes(sortOrder) || (categoryId !== undefined && !Number.isInteger(categoryId)) || (requestedPriority && !["LOW", "MEDIUM", "HIGH"].includes(String(requestedPriority))) || (currentStatus && !["NEW", "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"].includes(String(currentStatus)))) {
+    res.status(400).json({ error: "Invalid staff queue query." }); return;
+  }
+  const where = {
+    ...(search ? { OR: [{ ticketNumber: { contains: search, mode: "insensitive" as const } }, { summary: { contains: search, mode: "insensitive" as const } }, { requester: { name: { contains: search, mode: "insensitive" as const } } }] } : {}),
+    ...(categoryId !== undefined ? { categoryId } : {}),
+    ...(requestedPriority ? { requestedPriority: String(requestedPriority) as "LOW" | "MEDIUM" | "HIGH" } : {}),
+    ...(currentStatus ? { currentStatus: String(currentStatus) as "NEW" | "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED" } : {}),
+  };
+  try {
+    const prisma = getPrisma();
+    const [totalItems, items] = await Promise.all([
+      prisma.ticket.count({ where }),
+      prisma.ticket.findMany({ where, include: { requester: true, category: true, relatedSystem: true, owner: { select: { id: true, name: true } } }, orderBy: [{ [sortBy]: sortOrder }, { id: "desc" }], skip: (page - 1) * pageSize, take: pageSize }),
+    ]);
+    res.status(200).json({ items, pagination: { page, pageSize, totalItems, totalPages: Math.ceil(totalItems / pageSize) } });
+  } catch { res.status(500).json({ error: "Unable to retrieve the staff ticket queue." }); }
+});
+
+app.get("/api/staff/tickets/:ticketId", async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const ticketId = Number(req.params.ticketId);
+  if (!Number.isInteger(ticketId) || ticketId <= 0) { res.status(400).json({ error: "Invalid staff ticket request." }); return; }
+  try {
+    const ticket = await getPrisma().ticket.findUnique({
+      where: { id: ticketId },
+      include: { requester: true, category: true, relatedSystem: true, owner: { select: { id: true, name: true } } },
+    });
+    if (!ticket) { res.status(404).json({ error: "Ticket not found." }); return; }
+    res.status(200).json(ticket);
+  } catch { res.status(500).json({ error: "Unable to retrieve the staff ticket." }); }
+});
+
 app.post("/api/tickets", async (req: Request, res: Response) => {
   const requesterId = await requireRequester(req, res);
   if (!requesterId) return;
@@ -186,6 +238,7 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
             summary: trimmedSummary,
             description: trimmedDescription,
             requestedPriority,
+            itPriority: requestedPriority,
           },
           include: { requester: true, category: true, relatedSystem: true },
         });
