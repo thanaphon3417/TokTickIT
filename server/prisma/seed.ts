@@ -1,4 +1,5 @@
 import { getPrisma } from "../src/prisma.js";
+import { hashPassword } from "../src/auth.js";
 
 // Issue 3 — seed the four supported categories.
 // The four names are: Account and Access, Hardware, Software, Network.
@@ -56,7 +57,23 @@ async function main() {
     });
   }
 
-  console.log("Seeded TokTickIT categories, systems, and development requesters.");
+  const initialPasswordHash = await hashPassword("InitialPass123!");
+  const users = [
+    ...requesters.map((requester) => ({ ...requester, email: requester.email.toLowerCase(), role: "REQUESTER" as const, mustChangePassword: true })),
+    { name: "Iris Staff", email: "iris.staff@toktickit.local", isActive: true, role: "IT_STAFF" as const, mustChangePassword: true },
+    { name: "Avery Admin", email: "avery.admin@toktickit.local", isActive: true, role: "ADMINISTRATOR" as const, mustChangePassword: false },
+  ];
+
+  for (const user of users) {
+    const savedUser = await prisma.user.upsert({
+      where: { email: user.email },
+      update: { name: user.name, role: user.role, isActive: user.isActive, passwordHash: initialPasswordHash, mustChangePassword: user.mustChangePassword },
+      create: { ...user, passwordHash: initialPasswordHash },
+    });
+    if (user.role === "REQUESTER") await prisma.developmentRequester.update({ where: { email: user.email }, data: { userId: savedUser.id } });
+  }
+
+  console.log("Seeded TokTickIT reference data and Lab 3 demo users.");
 }
 
 main()
