@@ -16,6 +16,16 @@ export const app = express();
 app.use(cors());          // already wired: lets the Vite dev server call this API
 app.use(express.json());
 
+async function requireRequester(req: Request, res: Response): Promise<number | null> {
+  const user = await currentUser(req);
+  if (!user) { res.status(401).json({ error: "Authentication is required." }); return null; }
+  if (user.role !== "REQUESTER") { res.status(403).json({ error: "Requester access is required." }); return null; }
+  if (user.mustChangePassword) { res.status(403).json({ error: "A password change is required before using the application." }); return null; }
+  const requester = await getPrisma().developmentRequester.findUnique({ where: { userId: user.id } });
+  if (!requester || !requester.isActive) { res.status(403).json({ error: "Requester access is unavailable." }); return null; }
+  return requester.id;
+}
+
 app.post("/api/auth/login", async (req: Request, res: Response) => {
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   const password = typeof req.body?.password === "string" ? req.body.password : "";
@@ -130,13 +140,13 @@ app.get("/api/systems", async (_req: Request, res: Response) => {
 });
 
 app.post("/api/tickets", async (req: Request, res: Response) => {
-  const { requesterId, categoryId, relatedSystemId, summary, description, requestedPriority } = req.body ?? {};
-  const parsedRequesterId = Number(requesterId);
+  const requesterId = await requireRequester(req, res);
+  if (!requesterId) return;
+  const { categoryId, relatedSystemId, summary, description, requestedPriority } = req.body ?? {};
   const parsedCategoryId = Number(categoryId);
   const parsedRelatedSystemId = Number(relatedSystemId);
   const fieldErrors: Record<string, string> = {};
 
-  if (!Number.isInteger(parsedRequesterId) || parsedRequesterId <= 0) fieldErrors.requesterId = "Requester is required.";
   if (!Number.isInteger(parsedCategoryId) || parsedCategoryId <= 0) fieldErrors.categoryId = "Category is required.";
   if (!Number.isInteger(parsedRelatedSystemId) || parsedRelatedSystemId <= 0) fieldErrors.relatedSystemId = "Related system is required.";
   const trimmedSummary = typeof summary === "string" ? summary.trim() : "";
@@ -153,7 +163,7 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma();
     const [requester, category, relatedSystem] = await Promise.all([
-      prisma.developmentRequester.findFirst({ where: { id: parsedRequesterId, isActive: true } }),
+      prisma.developmentRequester.findFirst({ where: { id: requesterId, isActive: true } }),
       prisma.category.findUnique({ where: { id: parsedCategoryId } }),
       prisma.relatedSystem.findUnique({ where: { id: parsedRelatedSystemId } }),
     ]);
@@ -169,7 +179,7 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
         ticket = await prisma.ticket.create({
           data: {
             ticketNumber: generateTicketNumber(),
-            requesterId: parsedRequesterId,
+            requesterId,
             categoryId: parsedCategoryId,
             relatedSystemId: parsedRelatedSystemId,
             summary: trimmedSummary,
@@ -191,7 +201,8 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
 });
 
 app.get("/api/tickets", async (req: Request, res: Response) => {
-  const requesterId = Number(req.query.requesterId);
+  const requesterId = await requireRequester(req, res);
+  if (!requesterId) return;
   const page = Number(req.query.page ?? 1);
   const pageSize = Number(req.query.pageSize ?? 10);
   const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
@@ -202,7 +213,7 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
   const sortOrder = req.query.sortOrder ?? "desc";
   const sortFields = ["ticketNumber", "createdAt", "summary", "updatedAt"];
 
-  if (!Number.isInteger(requesterId) || requesterId <= 0 || !Number.isInteger(page) || page < 1 || ![5, 10, 20].includes(pageSize) || !sortFields.includes(String(sortBy)) || !["asc", "desc"].includes(String(sortOrder))) {
+  if (!Number.isInteger(page) || page < 1 || ![5, 10, 20].includes(pageSize) || !sortFields.includes(String(sortBy)) || !["asc", "desc"].includes(String(sortOrder))) {
     res.status(400).json({ error: "Invalid ticket list query." });
     return;
   }
@@ -239,9 +250,10 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
 
 app.get("/api/tickets/:ticketId", async (req: Request, res: Response) => {
   const ticketId = Number(req.params.ticketId);
-  const requesterId = Number(req.query.requesterId);
+  const requesterId = await requireRequester(req, res);
+  if (!requesterId) return;
 
-  if (!Number.isInteger(ticketId) || ticketId <= 0 || !Number.isInteger(requesterId) || requesterId <= 0) {
+  if (!Number.isInteger(ticketId) || ticketId <= 0) {
     res.status(400).json({ error: "Invalid ticket request." });
     return;
   }
@@ -265,8 +277,9 @@ app.get("/api/tickets/:ticketId", async (req: Request, res: Response) => {
 
 app.get("/api/tickets/:ticketId/attachments", async (req: Request, res: Response) => {
   const ticketId = Number(req.params.ticketId);
-  const requesterId = Number(req.query.requesterId);
-  if (!Number.isInteger(ticketId) || !Number.isInteger(requesterId) || ticketId <= 0 || requesterId <= 0) {
+  const requesterId = await requireRequester(req, res);
+  if (!requesterId) return;
+  if (!Number.isInteger(ticketId) || ticketId <= 0) {
     res.status(400).json({ error: "Invalid attachment request." });
     return;
   }
@@ -290,8 +303,9 @@ app.post("/api/tickets/:ticketId/attachments", (req: Request, res: Response, nex
   });
 }, async (req: Request, res: Response) => {
   const ticketId = Number(req.params.ticketId);
-  const requesterId = Number(req.query.requesterId);
-  if (!Number.isInteger(ticketId) || !Number.isInteger(requesterId) || ticketId <= 0 || requesterId <= 0) { res.status(400).json({ error: "Invalid attachment request." }); return; }
+  const requesterId = await requireRequester(req, res);
+  if (!requesterId) return;
+  if (!Number.isInteger(ticketId) || ticketId <= 0) { res.status(400).json({ error: "Invalid attachment request." }); return; }
   try {
     const prisma = getPrisma();
     const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
@@ -310,8 +324,9 @@ app.post("/api/tickets/:ticketId/attachments", (req: Request, res: Response, nex
 
 app.get("/api/attachments/:attachmentId/download", async (req: Request, res: Response) => {
   const attachmentId = Number(req.params.attachmentId);
-  const requesterId = Number(req.query.requesterId);
-  if (!Number.isInteger(attachmentId) || !Number.isInteger(requesterId) || attachmentId <= 0 || requesterId <= 0) { res.status(400).json({ error: "Invalid attachment request." }); return; }
+  const requesterId = await requireRequester(req, res);
+  if (!requesterId) return;
+  if (!Number.isInteger(attachmentId) || attachmentId <= 0) { res.status(400).json({ error: "Invalid attachment request." }); return; }
   try {
     const attachment = await getPrisma().attachment.findFirst({ where: { id: attachmentId, removedAt: null, ticket: { requesterId } } });
     if (!attachment) { res.status(404).json({ error: "Attachment not found." }); return; }
@@ -321,9 +336,10 @@ app.get("/api/attachments/:attachmentId/download", async (req: Request, res: Res
 
 app.delete("/api/attachments/:attachmentId", async (req: Request, res: Response) => {
   const attachmentId = Number(req.params.attachmentId);
-  const requesterId = Number(req.query.requesterId);
+  const requesterId = await requireRequester(req, res);
+  if (!requesterId) return;
   const reason = typeof req.body?.removalReason === "string" ? req.body.removalReason.trim() : "";
-  if (!Number.isInteger(attachmentId) || !Number.isInteger(requesterId) || attachmentId <= 0 || requesterId <= 0 || reason.length < 3 || reason.length > 500) { res.status(400).json({ error: "A removal reason of 3-500 characters is required." }); return; }
+  if (!Number.isInteger(attachmentId) || attachmentId <= 0 || reason.length < 3 || reason.length > 500) { res.status(400).json({ error: "A removal reason of 3-500 characters is required." }); return; }
   try {
     const attachment = await getPrisma().attachment.findFirst({ where: { id: attachmentId, removedAt: null, ticket: { requesterId } } });
     if (!attachment) { res.status(404).json({ error: "Attachment not found." }); return; }
