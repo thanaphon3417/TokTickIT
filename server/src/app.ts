@@ -4,6 +4,7 @@ import multer from "multer";
 import { randomUUID } from "node:crypto";
 import { generateTicketNumber } from "./ticket-number.js";
 import { getPrisma } from "./prisma.js";
+import { clearSession, createSession, currentUser, passwordIsValid, safeUser, verifyPassword, hashPassword } from "./auth.js";
 // getPrisma() is your lazy database handle. Call it INSIDE a route when you
 // need the DB (Issue 4). It is intentionally unused until then.
 void getPrisma;
@@ -14,6 +15,44 @@ export const app = express();
 
 app.use(cors());          // already wired: lets the Vite dev server call this API
 app.use(express.json());
+
+app.post("/api/auth/login", async (req: Request, res: Response) => {
+  const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  if (!email || !password) { res.status(400).json({ error: "Email and password are required." }); return; }
+  try {
+    const user = await getPrisma().user.findUnique({ where: { email } });
+    if (!user || !user.isActive || !(await verifyPassword(password, user.passwordHash))) {
+      res.status(401).json({ error: "Invalid email or password." }); return;
+    }
+    await createSession(res, user.id);
+    res.status(200).json({ user: safeUser(user) });
+  } catch { res.status(500).json({ error: "Unable to sign in. Please try again." }); }
+});
+
+app.post("/api/auth/logout", async (req: Request, res: Response) => {
+  try { await clearSession(req, res); res.status(204).send(); }
+  catch { res.status(500).json({ error: "Unable to sign out. Please try again." }); }
+});
+
+app.get("/api/auth/me", async (req: Request, res: Response) => {
+  try {
+    const user = await currentUser(req);
+    if (!user) { res.status(401).json({ error: "Authentication is required." }); return; }
+    res.status(200).json({ user });
+  } catch { res.status(500).json({ error: "Unable to retrieve the current user." }); }
+});
+
+app.post("/api/auth/change-password", async (req: Request, res: Response) => {
+  const password = req.body?.password;
+  if (!passwordIsValid(password)) { res.status(400).json({ error: "Password must be 12-128 characters." }); return; }
+  try {
+    const user = await currentUser(req);
+    if (!user) { res.status(401).json({ error: "Authentication is required." }); return; }
+    const updated = await getPrisma().user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password), mustChangePassword: false } });
+    res.status(200).json({ user: safeUser(updated) });
+  } catch { res.status(500).json({ error: "Unable to change password. Please try again." }); }
+});
 
 const allowedMimeTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 const attachmentUpload = multer({
