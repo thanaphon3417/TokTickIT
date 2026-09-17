@@ -57,6 +57,7 @@ model User {
   updatedAt           DateTime  @updatedAt
   requesterProfile    DevelopmentRequester? @relation("RequesterUser")
   sessions            AuthSession[]
+  ownedTickets        Ticket[]  @relation("TicketOwner")
 
   @@index([role, isActive])
 }
@@ -87,6 +88,10 @@ enum RequestedPriority {
 
 enum TicketStatus {
   NEW
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
 }
 
 model Ticket {
@@ -99,17 +104,22 @@ model Ticket {
   summary           String
   description       String
   requestedPriority RequestedPriority @default(MEDIUM)
+  itPriority        RequestedPriority @default(MEDIUM)
   currentStatus     TicketStatus     @default(NEW)
+  ownerId           Int?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   requester         DevelopmentRequester @relation(fields: [requesterId], references: [id])
   category          Category         @relation(fields: [categoryId], references: [id])
   relatedSystem     RelatedSystem    @relation(fields: [relatedSystemId], references: [id])
+  owner             User?            @relation("TicketOwner", fields: [ownerId], references: [id])
   attachments       Attachment[]
 
   @@index([requesterId, createdAt])
   @@index([categoryId])
   @@index([relatedSystemId])
+  @@index([ownerId, currentStatus])
+  @@index([itPriority])
 }
 
 model Attachment {
