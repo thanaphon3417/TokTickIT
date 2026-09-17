@@ -1,4 +1,36 @@
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL ?? "";
+
+export type AuthenticatedUser = { id: number; name: string; email: string; role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR"; mustChangePassword: boolean };
+const sessionOptions: RequestInit = { credentials: "include" };
+
+async function apiError(response: Response, fallback: string): Promise<never> {
+  const body = await response.json().catch(() => ({}));
+  throw new Error(body.error ?? fallback);
+}
+
+export async function login(email: string, password: string): Promise<AuthenticatedUser> {
+  const response = await fetch(`${API_URL}/api/auth/login`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+  if (!response.ok) return apiError(response, "Unable to sign in.");
+  return (await response.json() as { user: AuthenticatedUser }).user;
+}
+
+export async function logout(): Promise<void> {
+  const response = await fetch(`${API_URL}/api/auth/logout`, { method: "POST", ...sessionOptions });
+  if (!response.ok) return apiError(response, "Unable to sign out.");
+}
+
+export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
+  const response = await fetch(`${API_URL}/api/auth/me`, sessionOptions);
+  if (response.status === 401) return null;
+  if (!response.ok) return apiError(response, "Unable to retrieve the current user.");
+  return (await response.json() as { user: AuthenticatedUser }).user;
+}
+
+export async function changePassword(password: string): Promise<AuthenticatedUser> {
+  const response = await fetch(`${API_URL}/api/auth/change-password`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) });
+  if (!response.ok) return apiError(response, "Unable to change password.");
+  return (await response.json() as { user: AuthenticatedUser }).user;
+}
 
 export function getAttachmentDownloadUrl(attachmentId: number, requesterId: number): string {
   return `${API_URL}/api/attachments/${attachmentId}/download?requesterId=${requesterId}`;
@@ -80,19 +112,19 @@ export interface AttachmentMetadata {
 export async function uploadAttachment(ticketId: number, requesterId: number, file: File): Promise<AttachmentMetadata> {
   const body = new FormData();
   body.append("file", file);
-  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments?requesterId=${requesterId}`, { method: "POST", body });
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments?requesterId=${requesterId}`, { method: "POST", body, credentials: "include" });
   if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error ?? "Unable to upload attachment.");
   return response.json() as Promise<AttachmentMetadata>;
 }
 
 export async function removeAttachment(attachmentId: number, requesterId: number, removalReason: string): Promise<AttachmentMetadata> {
-  const response = await fetch(`${API_URL}/api/attachments/${attachmentId}?requesterId=${requesterId}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ removalReason }) });
+  const response = await fetch(`${API_URL}/api/attachments/${attachmentId}?requesterId=${requesterId}`, { method: "DELETE", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ removalReason }) });
   if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error ?? "Unable to remove attachment.");
   return response.json() as Promise<AttachmentMetadata>;
 }
 
 export async function getTicket(ticketId: number, requesterId: number): Promise<TicketDetail> {
-  const response = await fetch(`${API_URL}/api/tickets/${ticketId}?requesterId=${requesterId}`);
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}?requesterId=${requesterId}`, sessionOptions);
   if (!response.ok) throw new Error("Unable to retrieve ticket.");
   return response.json() as Promise<TicketDetail>;
 }
@@ -102,19 +134,19 @@ export async function getTickets(query: TicketListQuery): Promise<TicketListResp
   Object.entries(query).forEach(([key, value]) => {
     if (value !== undefined) params.set(key, String(value));
   });
-  const response = await fetch(`${API_URL}/api/tickets?${params.toString()}`);
+  const response = await fetch(`${API_URL}/api/tickets?${params.toString()}`, sessionOptions);
   if (!response.ok) throw new Error("Unable to retrieve tickets.");
   return response.json() as Promise<TicketListResponse>;
 }
 
 export async function getCategories(): Promise<ReferenceItem[]> {
-  const response = await fetch(`${API_URL}/api/categories`);
+  const response = await fetch(`${API_URL}/api/categories`, sessionOptions);
   if (!response.ok) throw new Error("Unable to retrieve request categories.");
   return response.json() as Promise<ReferenceItem[]>;
 }
 
 export async function getSystems(): Promise<ReferenceItem[]> {
-  const response = await fetch(`${API_URL}/api/systems`);
+  const response = await fetch(`${API_URL}/api/systems`, sessionOptions);
   if (!response.ok) throw new Error("Unable to retrieve related systems.");
   return response.json() as Promise<ReferenceItem[]>;
 }
@@ -123,7 +155,7 @@ export async function createTicket(input: CreateTicketInput): Promise<{ ticketNu
   const response = await fetch(`${API_URL}/api/tickets`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify(input), credentials: "include",
   });
 
   if (!response.ok) {
