@@ -2,7 +2,10 @@
 
 **Author:** Thanaphon Ratchatakulpong - 67070503417 - GitHub: [@thanaphon3417](https://github.com/thanaphon3417)
 
-**Peer reviewer:** Siripitch Chayabutra - 67070503440 - GitHub: [@siripitch-c](https://github.com/siripitch-c)
+**Peer reviewer:** Siripitch Chayabutra - 67070503440 - GitHub: [@siripitch-c](https://github.com/siripitch-c) (review me)
+
+**Peer reviewer:** Tana Udompornkul - 67070503418 - GitHub: [@Tana4Work](https://github.com/Tana4Work) (I review)
+
 
 ## Pull requests I authored
 
@@ -17,22 +20,20 @@
 | #43 | `feature/lab3-7-admin-users` | `lab3-staging` | `ddc1f5c` | `87ed449` | @siripitch-c | Approved / merged | 2026-09-18 07:45 UTC | [PR #43](https://github.com/thanaphon3417/TokTickIT/pull/43) |
 | #44 | `feature/lab3-8-final-release` | `lab3-staging` | `b4797d8` | `c7ca216` | @siripitch-c | Approved / merged | 2026-09-18 07:56 UTC | [PR #44](https://github.com/thanaphon3417/TokTickIT/pull/44) |
 
-All timestamps and commit references above are taken from the GitHub pull-request records. GitHub reported every PR as `MERGED` with review decision `APPROVED`.
 
 ## Review evidence for my pull requests
 
-| PR | GitHub reviewer | Actual review message | Approved (GitHub) | Merged (GitHub) |
-|---:|---|---|---|---|
-| #29 | @siripitch-c | “Everything looks good. Approved.” | 2026-09-17 10:44 UTC | 2026-09-17 10:44 UTC |
-| #38 | @siripitch-c | “Everything looks good. Approved.” | 2026-09-17 10:58 UTC | 2026-09-17 10:59 UTC |
-| #39 | @siripitch-c | “Everything looks good. Approved.” | 2026-09-17 11:36 UTC | 2026-09-17 11:37 UTC |
-| #40 | @siripitch-c | “Approved.” (following an earlier “Everything looks good.” review comment) | 2026-09-17 13:38 UTC | 2026-09-17 13:38 UTC |
-| #41 | @siripitch-c | “Everything looks good. Approved.” | 2026-09-17 14:59 UTC | 2026-09-17 14:59 UTC |
-| #42 | @siripitch-c | “Everything looks good. Approved.” | 2026-09-18 07:14 UTC | 2026-09-18 07:14 UTC |
-| #43 | @siripitch-c | “Everything looks good. Approved.” | 2026-09-18 07:45 UTC | 2026-09-18 07:45 UTC |
-| #44 | @siripitch-c | “Everything looks good. Approved.” | 2026-09-18 07:56 UTC | 2026-09-18 07:56 UTC |
+| PR | GitHub reviewer | Actual review message | Author response on GitHub | Approved (GitHub) | Merged (GitHub) |
+|---:|---|---|---|---|---|
+| #29 | @siripitch-c | “Everything looks good. Approved.” | @thanaphon3417: “Thank you.” (10:45 UTC) | 2026-09-17 10:44 UTC | 2026-09-17 10:44 UTC |
+| #38 | @siripitch-c | “Everything looks good. Approved.” | @thanaphon3417: “Thank you.” (10:59 UTC) | 2026-09-17 10:58 UTC | 2026-09-17 10:59 UTC |
+| #39 | @siripitch-c | “Everything looks good. Approved.” | @thanaphon3417: “Thank you.” (11:39 UTC) | 2026-09-17 11:36 UTC | 2026-09-17 11:37 UTC |
+| #40 | @siripitch-c | “Approved.” | @thanaphon3417: “Thank you.” (13:48 UTC) | 2026-09-17 13:38 UTC | 2026-09-17 13:38 UTC |
+| #41 | @siripitch-c | “Everything looks good. Approved.” | @thanaphon3417: “Thank you.” (15:05 UTC) | 2026-09-17 14:59 UTC | 2026-09-17 14:59 UTC |
+| #42 | @siripitch-c | “Everything looks good. Approved.” | @thanaphon3417: “Thank you.” (07:15 UTC) | 2026-09-18 07:14 UTC | 2026-09-18 07:14 UTC |
+| #43 | @siripitch-c | “Everything looks good. Approved.” | @thanaphon3417: “Thank you.” (07:46 UTC) | 2026-09-18 07:45 UTC | 2026-09-18 07:45 UTC |
+| #44 | @siripitch-c | “Everything looks good. Approved.” | @thanaphon3417: “Thank you.” (07:56 UTC) | 2026-09-18 07:56 UTC | 2026-09-18 07:56 UTC |
 
-No review message or approval is being inferred beyond the GitHub review records listed above.
 
 ## Final verification evidence
 
