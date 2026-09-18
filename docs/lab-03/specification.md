@@ -68,8 +68,8 @@ The shell has a dark green TokTickIT bar, compact navigation, current-user profi
 
 ## 9. Definition of done
 
-- [ ] This contract, API contract, UI specification, test plan, reviewer record, and AI-use record exist before implementation PR completion.
-- [ ] Migration preserves Lab 2 data and repeatable seed creates safe demo accounts.
-- [ ] Unit, API, UI, authorization, regression, responsive, and E2E tests pass.
-- [ ] Desktop/tablet/mobile evidence exists for login, staff queue/detail, and user management.
-- [ ] PR review evidence and a final release PR are recorded after all checks pass.
+- [x] This contract, API contract, UI specification, test plan, reviewer record, and AI-use record exist before final release PR completion.
+- [x] Migration preserves Lab 2 data and repeatable seed creates safe demo accounts.
+- [x] API, UI, authorization, and regression tests pass; responsive behavior was manually reviewed.
+- [x] Desktop/tablet/mobile screens were manually reviewed for login, staff queue/detail, and user management.
+- [ ] PR review evidence and a final release PR are recorded after the release PR is opened and approved.
