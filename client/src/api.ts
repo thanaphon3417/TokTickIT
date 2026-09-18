@@ -92,6 +92,7 @@ export interface StaffQueueResponse { items: StaffQueueTicket[]; pagination: Tic
 export interface StaffQueueQuery { search?: string; categoryId?: string; requestedPriority?: string; currentStatus?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number; }
 export type StaffTicketDetail = StaffQueueTicket & { description: string; ticketDate: string; relatedSystem: ReferenceItem; attachments: AttachmentMetadata[] };
 export type StaffUser = { id: number; name: string; email: string };
+export type AdminUser = StaffUser & { role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR"; isActive: boolean; mustChangePassword: boolean; createdAt: string; updatedAt: string };
 export type TicketWorkflowUpdate = { ownerId?: number | null; itPriority?: "LOW" | "MEDIUM" | "HIGH"; currentStatus?: string };
 export type CollaborationEntry = { id: number; body: string; createdAt: string; author: { id: number; name: string; role: string } };
 
@@ -112,6 +113,17 @@ export async function getStaffUsers(): Promise<StaffUser[]> {
   const response = await fetch(`${API_URL}/api/staff/users`, sessionOptions);
   if (!response.ok) return apiError(response, "Unable to retrieve active IT Staff users.");
   return response.json() as Promise<StaffUser[]>;
+}
+
+export async function getAdminUsers(query: { search?: string; role?: string; active?: string } = {}): Promise<AdminUser[]> {
+  const params = new URLSearchParams(Object.entries(query).filter((entry) => entry[1]) as string[][]);
+  const response = await fetch(`${API_URL}/api/admin/users?${params}`, sessionOptions); if (!response.ok) return apiError(response, "Unable to retrieve users."); return response.json() as Promise<AdminUser[]>;
+}
+export async function createAdminUser(input: { name: string; email: string; role: AdminUser["role"]; password?: string }): Promise<AdminUser> {
+  const response = await fetch(`${API_URL}/api/admin/users`, { method: "POST", ...sessionOptions, headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }); if (!response.ok) return apiError(response, "Unable to create user."); return response.json() as Promise<AdminUser>;
+}
+export async function updateAdminUser(id: number, input: { name: string; email: string; role: AdminUser["role"]; isActive: boolean; resetPassword?: boolean; password?: string }): Promise<AdminUser> {
+  const response = await fetch(`${API_URL}/api/admin/users/${id}`, { method: "PATCH", ...sessionOptions, headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }); if (!response.ok) return apiError(response, "Unable to update user."); return response.json() as Promise<AdminUser>;
 }
 
 export async function updateStaffTicket(ticketId: number, update: TicketWorkflowUpdate): Promise<StaffTicketDetail> {
