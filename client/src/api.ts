@@ -90,7 +90,10 @@ export type StaffQueueTicket = TicketListResponse["items"][number] & {
 };
 export interface StaffQueueResponse { items: StaffQueueTicket[]; pagination: TicketListResponse["pagination"]; }
 export interface StaffQueueQuery { search?: string; categoryId?: string; requestedPriority?: string; currentStatus?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number; }
-export type StaffTicketDetail = StaffQueueTicket & { description: string; ticketDate: string; relatedSystem: ReferenceItem };
+export type StaffTicketDetail = StaffQueueTicket & { description: string; ticketDate: string; relatedSystem: ReferenceItem; attachments: AttachmentMetadata[] };
+export type StaffUser = { id: number; name: string; email: string };
+export type TicketWorkflowUpdate = { ownerId?: number | null; itPriority?: "LOW" | "MEDIUM" | "HIGH"; currentStatus?: string };
+export type CollaborationEntry = { id: number; body: string; createdAt: string; author: { id: number; name: string; role: string } };
 
 export async function getStaffTickets(query: StaffQueueQuery): Promise<StaffQueueResponse> {
   const params = new URLSearchParams(); Object.entries(query).forEach(([key, value]) => { if (value !== undefined) params.set(key, String(value)); });
@@ -103,6 +106,42 @@ export async function getStaffTicket(ticketId: number): Promise<StaffTicketDetai
   const response = await fetch(`${API_URL}/api/staff/tickets/${ticketId}`, sessionOptions);
   if (!response.ok) return apiError(response, "Unable to retrieve the staff ticket.");
   return response.json() as Promise<StaffTicketDetail>;
+}
+
+export async function getStaffUsers(): Promise<StaffUser[]> {
+  const response = await fetch(`${API_URL}/api/staff/users`, sessionOptions);
+  if (!response.ok) return apiError(response, "Unable to retrieve active IT Staff users.");
+  return response.json() as Promise<StaffUser[]>;
+}
+
+export async function updateStaffTicket(ticketId: number, update: TicketWorkflowUpdate): Promise<StaffTicketDetail> {
+  const response = await fetch(`${API_URL}/api/staff/tickets/${ticketId}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) });
+  if (!response.ok) return apiError(response, "Unable to update the staff ticket.");
+  return response.json() as Promise<StaffTicketDetail>;
+}
+
+export async function getTicketComments(ticketId: number): Promise<CollaborationEntry[]> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, sessionOptions);
+  if (!response.ok) return apiError(response, "Unable to retrieve public comments.");
+  return response.json() as Promise<CollaborationEntry[]>;
+}
+
+export async function postTicketComment(ticketId: number, body: string): Promise<CollaborationEntry> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }) });
+  if (!response.ok) return apiError(response, "Unable to add public comment.");
+  return response.json() as Promise<CollaborationEntry>;
+}
+
+export async function getInternalNotes(ticketId: number): Promise<CollaborationEntry[]> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/notes`, sessionOptions);
+  if (!response.ok) return apiError(response, "Unable to retrieve internal notes.");
+  return response.json() as Promise<CollaborationEntry[]>;
+}
+
+export async function postInternalNote(ticketId: number, body: string): Promise<CollaborationEntry> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/notes`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }) });
+  if (!response.ok) return apiError(response, "Unable to add internal note.");
+  return response.json() as Promise<CollaborationEntry>;
 }
 
 export interface TicketDetail {

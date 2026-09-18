@@ -61,6 +61,7 @@ async function main() {
   const users = [
     ...requesters.map((requester) => ({ ...requester, email: requester.email.toLowerCase(), role: "REQUESTER" as const, mustChangePassword: true })),
     { name: "Iris Staff", email: "iris.staff@toktickit.local", isActive: true, role: "IT_STAFF" as const, mustChangePassword: true },
+    { name: "Noah Staff", email: "noah.staff@toktickit.local", isActive: true, role: "IT_STAFF" as const, mustChangePassword: true },
     { name: "Avery Admin", email: "avery.admin@toktickit.local", isActive: true, role: "ADMINISTRATOR" as const, mustChangePassword: false },
   ];
 
