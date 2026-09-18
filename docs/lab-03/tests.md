@@ -13,4 +13,13 @@
 | UI-03 | color tokens, focus, 1280/900/390 layouts | AC-10 | style tests and screenshot review |
 | E2E-01 | authenticated role workflows | AC-01–AC-09 | `e2e/lab-03/*.spec.ts` |
 
-Final result fields will be filled only from executed test output and reviewed screenshots.
+## Executed final results
+
+| Area | Result | Evidence |
+| --- | --- | --- |
+| Server API/auth/authorization/workflow/admin/regression | 22 passed | `server/tests/lab-02/*.test.ts`, `server/tests/lab-03/*.test.ts` |
+| Client regression and UI tests | 7 passed | `client/tests/**/*.test.tsx` |
+| Server production build | Passed | `npm run build` |
+| Client production build | Passed | `npm run build` |
+| Prisma migration status | Up to date | `prisma migrate status` |
+| Manual UI review | Approved | `docs/lab-03/reviewer.md` |
