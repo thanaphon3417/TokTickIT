@@ -35,6 +35,14 @@ async function requireStaff(req: Request, res: Response): Promise<boolean> {
   return true;
 }
 
+async function requireAdmin(req: Request, res: Response): Promise<SafeUser | null> {
+  const user = await currentUser(req);
+  if (!user) { res.status(401).json({ error: "Authentication is required." }); return null; }
+  if (user.role !== "ADMINISTRATOR") { res.status(403).json({ error: "Administrator access is required." }); return null; }
+  if (user.mustChangePassword) { res.status(403).json({ error: "A password change is required before using the application." }); return null; }
+  return user;
+}
+
 async function requireTicketParticipant(req: Request, res: Response, ticketId: number, allowAdministrator = true): Promise<SafeUser | null> {
   const user = await currentUser(req);
   if (!user) { res.status(401).json({ error: "Authentication is required." }); return null; }
@@ -216,6 +224,75 @@ app.get("/api/staff/users", async (req: Request, res: Response) => {
       orderBy: { name: "asc" },
     }));
   } catch { res.status(500).json({ error: "Unable to retrieve active IT Staff users." }); }
+});
+
+const userRoles = ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"] as const;
+function userInput(body: any) {
+  const name = typeof body?.name === "string" ? body.name.trim() : "";
+  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+  const role = typeof body?.role === "string" ? body.role : "";
+  const fieldErrors: Record<string, string> = {};
+  if (name.length < 2 || name.length > 120) fieldErrors.name = "Name must be 2-120 characters.";
+  if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 255) fieldErrors.email = "A valid email is required.";
+  if (!userRoles.includes(role as typeof userRoles[number])) fieldErrors.role = "Role is invalid.";
+  return { name, email, role: role as typeof userRoles[number], fieldErrors };
+}
+
+app.get("/api/admin/users", async (req: Request, res: Response) => {
+  if (!(await requireAdmin(req, res))) return;
+  const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+  const role = typeof req.query.role === "string" ? req.query.role : "";
+  const active = typeof req.query.active === "string" ? req.query.active : "";
+  if (role && !userRoles.includes(role as typeof userRoles[number])) { res.status(400).json({ error: "Invalid user role filter." }); return; }
+  if (active && !["true", "false"].includes(active)) { res.status(400).json({ error: "Invalid active filter." }); return; }
+  try {
+    const users = await getPrisma().user.findMany({ where: { ...(search ? { OR: [{ name: { contains: search, mode: "insensitive" as const } }, { email: { contains: search, mode: "insensitive" as const } }] } : {}), ...(role ? { role: role as typeof userRoles[number] } : {}), ...(active ? { isActive: active === "true" } : {}) }, select: { id: true, name: true, email: true, role: true, isActive: true, mustChangePassword: true, createdAt: true, updatedAt: true }, orderBy: [{ name: "asc" }, { id: "asc" }] });
+    res.status(200).json(users);
+  } catch { res.status(500).json({ error: "Unable to retrieve users." }); }
+});
+
+app.post("/api/admin/users", async (req: Request, res: Response) => {
+  if (!(await requireAdmin(req, res))) return;
+  const input = userInput(req.body);
+  const password = typeof req.body?.password === "string" ? req.body.password : "InitialPass123!";
+  if (!passwordIsValid(password)) input.fieldErrors.password = "Password must be 12-128 characters.";
+  if (Object.keys(input.fieldErrors).length) { res.status(400).json({ error: "Validation failed.", fieldErrors: input.fieldErrors }); return; }
+  try {
+    const prisma = getPrisma();
+    if (await prisma.user.findUnique({ where: { email: input.email }, select: { id: true } })) { res.status(409).json({ error: "A user with that email already exists." }); return; }
+    const created = await prisma.user.create({ data: { name: input.name, email: input.email, role: input.role, passwordHash: await hashPassword(password), mustChangePassword: true }, select: { id: true, name: true, email: true, role: true, isActive: true, mustChangePassword: true, createdAt: true, updatedAt: true } });
+    if (created.role === "REQUESTER") await prisma.developmentRequester.create({ data: { name: created.name, email: created.email, userId: created.id } });
+    res.status(201).json(created);
+  } catch { res.status(500).json({ error: "Unable to create user." }); }
+});
+
+app.get("/api/admin/users/:userId", async (req: Request, res: Response) => {
+  if (!(await requireAdmin(req, res))) return;
+  const userId = Number(req.params.userId);
+  if (!Number.isInteger(userId) || userId <= 0) { res.status(400).json({ error: "Invalid user request." }); return; }
+  try { const user = await getPrisma().user.findUnique({ where: { id: userId }, select: { id: true, name: true, email: true, role: true, isActive: true, mustChangePassword: true, createdAt: true, updatedAt: true } }); if (!user) { res.status(404).json({ error: "User not found." }); return; } res.status(200).json(user); }
+  catch { res.status(500).json({ error: "Unable to retrieve user." }); }
+});
+
+app.patch("/api/admin/users/:userId", async (req: Request, res: Response) => {
+  const admin = await requireAdmin(req, res); if (!admin) return;
+  const userId = Number(req.params.userId);
+  if (!Number.isInteger(userId) || userId <= 0) { res.status(400).json({ error: "Invalid user request." }); return; }
+  const input = userInput(req.body);
+  const password = req.body?.resetPassword ? (typeof req.body.password === "string" ? req.body.password : "InitialPass123!") : undefined;
+  if (req.body?.resetPassword && !passwordIsValid(password)) input.fieldErrors.password = "Password must be 12-128 characters.";
+  if (Object.keys(input.fieldErrors).length) { res.status(400).json({ error: "Validation failed.", fieldErrors: input.fieldErrors }); return; }
+  try {
+    const prisma = getPrisma(); const existing = await prisma.user.findUnique({ where: { id: userId } });
+    if (!existing) { res.status(404).json({ error: "User not found." }); return; }
+    if (await prisma.user.findFirst({ where: { email: input.email, id: { not: userId } }, select: { id: true } })) { res.status(409).json({ error: "A user with that email already exists." }); return; }
+    if (existing.id === admin.id && req.body.isActive === false) { res.status(409).json({ error: "You cannot deactivate your own administrator account." }); return; }
+    if (existing.role === "ADMINISTRATOR" && (req.body.isActive === false || input.role !== "ADMINISTRATOR")) { const count = await prisma.user.count({ where: { role: "ADMINISTRATOR", isActive: true } }); if (existing.isActive && count <= 1) { res.status(409).json({ error: "The final active administrator cannot be deactivated or changed." }); return; } }
+    const updated = await prisma.user.update({ where: { id: userId }, data: { name: input.name, email: input.email, role: input.role, ...(req.body.isActive !== undefined ? { isActive: Boolean(req.body.isActive) } : {}), ...(password ? { passwordHash: await hashPassword(password), mustChangePassword: true } : {}) }, select: { id: true, name: true, email: true, role: true, isActive: true, mustChangePassword: true, createdAt: true, updatedAt: true } });
+    if (existing.role === "REQUESTER" && input.role !== "REQUESTER") await prisma.developmentRequester.updateMany({ where: { userId }, data: { isActive: false } });
+    if (input.role === "REQUESTER") await prisma.developmentRequester.upsert({ where: { userId }, update: { name: input.name, email: input.email, isActive: updated.isActive }, create: { name: input.name, email: input.email, userId, isActive: updated.isActive } });
+    res.status(200).json(updated);
+  } catch { res.status(500).json({ error: "Unable to update user." }); }
 });
 
 const allowedStaffTransitions: Record<string, string[]> = {
