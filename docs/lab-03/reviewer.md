@@ -34,6 +34,27 @@
 | #43 | @siripitch-c | “Everything looks good. Approved.” | @thanaphon3417: “Thank you.” (07:46 UTC) | 2026-09-18 07:45 UTC | 2026-09-18 07:45 UTC |
 | #44 | @siripitch-c | “Everything looks good. Approved.” | @thanaphon3417: “Thank you.” (07:56 UTC) | 2026-09-18 07:56 UTC | 2026-09-18 07:56 UTC |
 
+## Pull Requests I reviewed
+
+| PR | Branch | Target | Reviewed | Verdict | Link |
+|---|---|---|---|---|---|
+| #47 | `feature/lab3-01-docs-test-planning` | `lab3-staging` | @Tana4Work | Approved / merged 2026-09-15 | https://github.com/Tana4Work/toktickit/pull/47 |
+| #48 | `feature/lab3-02-database-auth-authorization` | `lab3-staging` | @Tana4Work | Approved / merged 2026-09-15 | https://github.com/Tana4Work/toktickit/pull/48 |
+| #49 | `feature/lab3-03-requester-regression-comments` | `lab3-staging` | @Tana4Work | Approved / merged 2026-09-15 | https://github.com/Tana4Work/toktickit/pull/49 |
+| #50 | `feature/lab3-04-it-staff-ticket-workflow` | `lab3-staging` | @Tana4Work | Approved / merged 2026-09-16 | https://github.com/Tana4Work/toktickit/pull/50 |
+| #51 | `feature/lab3-05-admin-user-management` | `lab3-staging` | @Tana4Work | Approved / merged 2026-09-18 | https://github.com/Tana4Work/toktickit/pull/51 |
+| #52 | `feature/lab3-06-e2e-responsive-visual-qa` | `lab3-staging` | @Tana4Work | Approved / merged 2026-09-18 | https://github.com/Tana4Work/toktickit/pull/52 |
+
+## Review evidence for PRs I reviewed
+
+| PR | My review comment | Author response | Approval and merge evidence |
+|---|---|---|---|
+| #47 | @thanaphon3417: “Good Plan! Please Continue the work.” | @Tana4Work: “Thank you my brother” | Approved 2026-09-15; merged 2026-09-15. |
+| #48 | @thanaphon3417: “Approved! Good Job!” | @Tana4Work: “Thank you my brother” | Approved 2026-09-15; merged 2026-09-15. |
+| #49 | @thanaphon3417: “Approved! Good Job!” | @Tana4Work: “Thank you my brother” | Approved 2026-09-15; merged 2026-09-15. |
+| #50 | @thanaphon3417: “Approved! Good Job!” | @Tana4Work: “Thank you my brother” | Approved 2026-09-16; merged 2026-09-16. |
+| #51 | @thanaphon3417: “Approved! Good Job!” | @Tana4Work: “Thank you my brother” | Approved 2026-09-18; merged 2026-09-18. |
+| #52 | @thanaphon3417: “Approved! Good Job!” | @Tana4Work: “Thank you my brother” | Approved 2026-09-18; merged 2026-09-18. |
 
 ## Final verification evidence
 

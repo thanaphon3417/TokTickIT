@@ -72,4 +72,4 @@ The shell has a dark green TokTickIT bar, compact navigation, current-user profi
 - [x] Migration preserves Lab 2 data and repeatable seed creates safe demo accounts.
 - [x] API, UI, authorization, and regression tests pass; responsive behavior was manually reviewed.
 - [x] Desktop/tablet/mobile screens were manually reviewed for login, staff queue/detail, and user management.
-- [ ] PR review evidence and a final release PR are recorded after the release PR is opened and approved.
+- [x] PR review evidence and a final release PR are recorded after the release PR is opened and approved.
