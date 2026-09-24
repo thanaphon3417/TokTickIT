@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
+import { requesterAgent } from "../lab-03/requester-test-helper.js";
 
 describe("GET /api/tickets", () => {
   it("returns only the selected requester's tickets with query controls", async () => {
-    const created = await request(app).post("/api/tickets").send({
+    const agent = await requesterAgent();
+    const created = await agent.post("/api/tickets").send({
       requesterId: 1,
       categoryId: 1,
       relatedSystemId: 1,
@@ -15,7 +17,7 @@ describe("GET /api/tickets", () => {
 
     expect(created.status).toBe(201);
 
-    const response = await request(app).get(
+    const response = await agent.get(
       "/api/tickets?requesterId=1&search=VPN&page=1&pageSize=5&sortBy=createdAt&sortOrder=desc",
     );
 
@@ -26,15 +28,15 @@ describe("GET /api/tickets", () => {
     expect(response.body.items.every((ticket: { requesterId: number }) => ticket.requesterId === 1)).toBe(true);
   });
 
-  it("does not return another requester's tickets", async () => {
-    const response = await request(app).get("/api/tickets?requesterId=2&search=VPN");
+  it("ignores a client-supplied requester ID and retains the session owner's scope", async () => {
+    const response = await (await requesterAgent()).get("/api/tickets?requesterId=2&search=VPN");
 
     expect(response.status).toBe(200);
-    expect(response.body.items).toHaveLength(0);
+    expect(response.body.items.every((ticket: { requesterId: number }) => ticket.requesterId === 1)).toBe(true);
   });
 
   it("rejects invalid page and sort parameters", async () => {
-    const response = await request(app).get("/api/tickets?requesterId=1&page=0&pageSize=7&sortBy=unsafe&sortOrder=sideways");
+    const response = await (await requesterAgent()).get("/api/tickets?requesterId=1&page=0&pageSize=7&sortBy=unsafe&sortOrder=sideways");
     expect(response.status).toBe(400);
     expect(response.body.error).toBe("Invalid ticket list query.");
   });

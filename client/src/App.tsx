@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
-import { createTicket, DevelopmentRequester, getActiveRequesters, getAttachmentDownloadUrl, getCategories, getSystems, getTicket, getTickets, ReferenceItem, TicketDetail, TicketListResponse, removeAttachment, uploadAttachment } from "./api.js";
+import { AuthenticatedUser, changePassword, createTicket, getAttachmentDownloadUrl, getCategories, getCurrentUser, getSystems, getTicket, getTickets, login, logout, ReferenceItem, TicketDetail, TicketListResponse, removeAttachment, uploadAttachment } from "./api.js";
+import StaffQueue from "./StaffQueue.js";
+import AdminUsers from "./AdminUsers.js";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "loading" | "success" | "empty" | "error";
 
 export default function App() {
   const [state, setState] = useState<UiState>("loading");
-  const [requesters, setRequesters] = useState<DevelopmentRequester[]>([]);
+  const [user, setUser] = useState<AuthenticatedUser | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
   const [selectedId, setSelectedId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [categories, setCategories] = useState<ReferenceItem[]>([]);
@@ -31,53 +36,51 @@ export default function App() {
   const [detailError, setDetailError] = useState("");
   const [attachmentError, setAttachmentError] = useState("");
 
-  async function loadRequesters() {
-    setState("loading");
-    setErrorMessage("");
-
-    try {
-      const activeRequesters = await getActiveRequesters();
-      setRequesters(activeRequesters);
-      setSelectedId(localStorage.getItem("toktickit.requesterId") ?? "");
-      setState(activeRequesters.length === 0 ? "empty" : "success");
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Unable to retrieve active development requesters.",
-      );
-      setState("error");
-    }
-  }
-
   useEffect(() => {
-    void loadRequesters();
+    void (async () => {
+      try {
+        const current = await getCurrentUser();
+        setUser(current);
+        if (current?.role === "REQUESTER" && !current.mustChangePassword) {
+          setSelectedId(String(current.id));
+          setShowCreate(true);
+          const [loadedCategories, loadedSystems] = await Promise.all([getCategories(), getSystems()]);
+          setCategories(loadedCategories);
+          setSystems(loadedSystems);
+        }
+        setState("success");
+      } catch (error) {
+        setAuthError(error instanceof Error ? error.message : "Unable to restore your session.");
+      } finally { setSessionLoading(false); }
+    })();
   }, []);
 
-  function handleContinue() {
-    if (selectedId) {
-      localStorage.setItem("toktickit.requesterId", selectedId);
-      setShowCreate(true);
-      void Promise.all([getCategories(), getSystems()]).then(([loadedCategories, loadedSystems]) => {
-        setCategories(loadedCategories);
-        setSystems(loadedSystems);
-      }).catch((error: unknown) => {
-        setFormError(error instanceof Error ? error.message : "Unable to load ticket reference data.");
-      });
-    }
+  async function establishSession(email: string, password: string) {
+    setAuthBusy(true); setAuthError("");
+    try {
+      const current = await login(email, password);
+      setUser(current);
+      if (current.role === "REQUESTER" && !current.mustChangePassword) {
+        setSelectedId(String(current.id)); setShowCreate(true);
+        const [loadedCategories, loadedSystems] = await Promise.all([getCategories(), getSystems()]);
+        setCategories(loadedCategories); setSystems(loadedSystems);
+      }
+    } catch (error) { setAuthError(error instanceof Error ? error.message : "Unable to sign in."); }
+    finally { setAuthBusy(false); }
   }
 
-  function handleChangeRequester() {
-    localStorage.removeItem("toktickit.requesterId");
-    setSelectedId("");
-    setShowCreate(false);
-    setShowTickets(false);
-    setTickets(null);
-    setDetail(null);
-    setTicketNumber("");
-    setFormError("");
-    setAttachmentError("");
+  async function savePassword(password: string) {
+    setAuthBusy(true); setAuthError("");
+    try {
+      const updated = await changePassword(password); setUser(updated);
+      if (updated.role === "REQUESTER") { setSelectedId(String(updated.id)); setShowCreate(true); const [loadedCategories, loadedSystems] = await Promise.all([getCategories(), getSystems()]); setCategories(loadedCategories); setSystems(loadedSystems); }
+    } catch (error) { setAuthError(error instanceof Error ? error.message : "Unable to change password."); }
+    finally { setAuthBusy(false); }
   }
+
+  async function endSession() { await logout().catch(() => undefined); setUser(null); setShowCreate(false); setShowTickets(false); setDetail(null); setSelectedId(""); }
+
+  function handleChangeRequester() { void endSession(); }
 
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -123,6 +126,7 @@ export default function App() {
 
   function openTickets() {
     setShowTickets(true);
+    setDetail(null);
     void loadTickets(1);
   }
 
@@ -150,47 +154,27 @@ export default function App() {
     catch (error) { setAttachmentError(error instanceof Error ? error.message : "Unable to remove attachment."); }
   }
 
+  if (sessionLoading) return <AuthFrame><p role="status">Restoring your secure session...</p></AuthFrame>;
+  if (!user) return <LoginScreen error={authError} busy={authBusy} onSubmit={establishSession} />;
+  if (user.mustChangePassword) return <ChangePasswordScreen error={authError} busy={authBusy} onSubmit={savePassword} />;
+  if (user.role === "IT_STAFF") return <StaffQueue staffName={user.name} onLogout={() => void endSession()} />;
+  if (user.role === "ADMINISTRATOR") return <AdminUsers adminName={user.name} onLogout={() => void endSession()} />;
+  if (user.role !== "REQUESTER") return <AuthFrame><h1 className="h3">Welcome, {user.name}</h1><p>Your workspace is being prepared.</p><button className="btn btn-outline-success" type="button" onClick={() => void endSession()}>Log out</button></AuthFrame>;
+
   return (
-    <div className="container py-5" style={{ maxWidth: 640 }}>
-      <h1 className="h3 mb-3">TokTickIT</h1>
-      <h2 className="h4 mb-2">Select Development Requester</h2>
-      <p>This is a Lab 2 testing selector, not a login screen.</p>
-
-      {state === "loading" && (
-        <p className="mt-4" role="status">
-          Loading active requesters...
-        </p>
-      )}
-
-      {state === "success" && !showCreate && (
-        <form onSubmit={(event) => { event.preventDefault(); handleContinue(); }}>
-          <label className="form-label" htmlFor="requester">
-            Development Requester <span className="text-danger">*</span>
-          </label>
-          <select
-            className="form-select"
-            id="requester"
-            value={selectedId}
-            onChange={(event) => setSelectedId(event.target.value)}
-            required
-          >
-            <option value="">Select a requester</option>
-            {requesters.map((requester) => (
-              <option key={requester.id} value={requester.id}>
-                {requester.name} ({requester.email})
-              </option>
-            ))}
-          </select>
-          <button className="btn btn-success mt-3" type="submit" disabled={!selectedId}>
-            Continue
-          </button>
-        </form>
-      )}
-
-      {showCreate && (
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="app-header__inner">
+          <a className="brand" href="#top" aria-label="TokTickIT home" onClick={(event) => { event.preventDefault(); setShowTickets(false); setDetail(null); }}><span className="brand-mark" aria-hidden="true">◷</span><span className="brand-name">TokTickIT</span></a>
+          {showCreate && <nav className="app-nav" aria-label="Application navigation"><button type="button" onClick={openTickets}>My Tickets</button><button type="button" onClick={() => { setShowTickets(false); setDetail(null); }}>Create Ticket</button></nav>}
+          {showCreate && <span className="profile">● {user.name} <button className="profile__logout" type="button" onClick={() => void endSession()}>Log out</button></span>}
+        </div>
+      </header>
+      <main id="top" className="container page-content" style={{ maxWidth: showCreate ? 1180 : 640 }}>
+      <h1 className="h3 mb-3">{showCreate ? (detail ? "Ticket Detail" : showTickets ? "My Tickets" : "Create Ticket") : "TokTickIT"}</h1>
+      {showCreate && !showTickets && (
         <section className="mt-4">
-          <p>Requester ID: <strong>{selectedId}</strong></p>
-          <button className="btn btn-outline-success mb-3" type="button" onClick={handleChangeRequester}>Change Requester</button>
+          <button className="btn btn-outline-success mb-3" type="button" onClick={handleChangeRequester}>Log out</button>
           {ticketNumber ? <p className="alert alert-success" role="status">Ticket created: <strong>{ticketNumber}</strong></p> : null}
           {formError ? <p className="alert alert-danger" role="alert">{formError}</p> : null}
           <form noValidate onSubmit={handleCreate}>
@@ -221,11 +205,7 @@ export default function App() {
         </section>
       )}
 
-      {showCreate && !showTickets && (
-        <button className="btn btn-outline-success mt-3" type="button" onClick={openTickets}>My Tickets</button>
-      )}
-
-      {showTickets && (
+      {showTickets && !detail && (
         <section className="mt-4">
           <h2 className="h4">My Tickets</h2>
           <div className="row g-2">
@@ -247,7 +227,7 @@ export default function App() {
       {detailError && <p className="alert alert-danger mt-3" role="alert">{detailError}</p>}
       {detail && (
         <section className="mt-4" aria-label="Ticket Detail">
-          <h2 className="h4">Ticket Detail</h2>
+          <button className="btn btn-outline-success mb-3" type="button" onClick={() => setDetail(null)}>← Back to My Tickets</button>
           <dl>
             <dt>Ticket Number</dt><dd>{detail.ticketNumber}</dd>
             <dt>Ticket Date</dt><dd>{new Date(detail.ticketDate).toLocaleString()}</dd>
@@ -267,20 +247,21 @@ export default function App() {
         </section>
       )}
 
-      {state === "empty" && (
-        <p className="alert alert-warning mt-4" role="status">
-          No active development requesters are available.
-        </p>
-      )}
-
-      {state === "error" && (
-        <div className="alert alert-danger mt-4" role="alert">
-          <p className="mb-2">{errorMessage}</p>
-          <button className="btn btn-outline-danger" type="button" onClick={() => void loadRequesters()}>
-            Retry
-          </button>
-        </div>
-      )}
+      </main>
     </div>
   );
+}
+
+function AuthFrame({ children }: { children: React.ReactNode }) {
+  return <div className="auth-page"><div className="auth-card"><a className="brand brand--dark" href="#top"><span className="brand-mark" aria-hidden="true">◷</span><span className="brand-name">TokTickIT</span></a>{children}</div></div>;
+}
+
+function LoginScreen({ error, busy, onSubmit }: { error: string; busy: boolean; onSubmit: (email: string, password: string) => Promise<void> }) {
+  const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
+  return <AuthFrame><h1 className="h3 mt-4">Welcome back</h1><p className="text-secondary">Sign in to your IT service workspace.</p>{error && <p className="alert alert-danger" role="alert">{error}</p>}<form onSubmit={(event) => { event.preventDefault(); void onSubmit(email, password); }}><label className="form-label" htmlFor="email">Email address</label><input id="email" className="form-control mb-3" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /><label className="form-label" htmlFor="password">Password</label><input id="password" className="form-control" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /><button className="btn btn-success w-100 mt-4" type="submit" disabled={busy}>{busy ? "Signing in..." : "Sign in"}</button></form></AuthFrame>;
+}
+
+function ChangePasswordScreen({ error, busy, onSubmit }: { error: string; busy: boolean; onSubmit: (password: string) => Promise<void> }) {
+  const [password, setPassword] = useState(""); const [confirm, setConfirm] = useState(""); const mismatch = confirm.length > 0 && password !== confirm;
+  return <AuthFrame><h1 className="h3 mt-4">Set a new password</h1><p className="text-secondary">Your initial password must be changed before you can continue.</p>{error && <p className="alert alert-danger" role="alert">{error}</p>}<form onSubmit={(event) => { event.preventDefault(); if (!mismatch) void onSubmit(password); }}><label className="form-label" htmlFor="new-password">New password</label><input id="new-password" className="form-control mb-3" type="password" autoComplete="new-password" minLength={12} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} required /><label className="form-label" htmlFor="confirm-password">Confirm new password</label><input id="confirm-password" className={`form-control ${mismatch ? "is-invalid" : ""}`} type="password" autoComplete="new-password" value={confirm} onChange={(event) => setConfirm(event.target.value)} required />{mismatch && <p className="text-danger mt-1">Passwords do not match.</p>}<button className="btn btn-success w-100 mt-4" type="submit" disabled={busy || mismatch}>{busy ? "Saving..." : "Save password"}</button></form></AuthFrame>;
 }
