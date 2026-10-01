@@ -1,10 +1,14 @@
 # TokTickIT
 
-Lab 2 delivers the requester-facing ticket MVP: development requester selection, ticket creation, requester-owned ticket lists and detail, and permitted attachment upload, download, and soft removal. The selector is a testing mechanism, not authentication.
+Lab 3 replaces the temporary requester selector with secure session-based authentication and role-based authorization. It adds mandatory first-login password change, Requester ownership protection, the IT Staff queue and ticket workflow, Public Comments/Internal Notes, and Administrator user management. Lab 2 ticket and attachment data remains available after migration.
 
-TokTickIT is an IT service desk application. Lab 1 delivers a small full-stack vertical slice that proves the frontend, REST API, Prisma ORM, and PostgreSQL database work together.
+TokTickIT is an IT service desk application developed incrementally through Labs 1–3. The application uses a React/Vite client, an Express REST API, Prisma ORM, and PostgreSQL.
 
-Clicking **Check System** in the browser calls the backend health endpoint and retrieves the supported request categories from PostgreSQL.
+Authenticated users see role-specific navigation:
+
+- Requester: create and manage owned tickets, attachments, and public comments.
+- IT Staff: search the shared queue, open ticket detail, assign ownership, set IT priority, update status, and post comments or internal notes.
+- Administrator: list, search, create, edit, activate/deactivate, and reset initial passwords for users.
 
 ## Technology
 
@@ -65,11 +69,13 @@ PORT=3000
 From the `server` directory, create the database table and seed the categories:
 
 ```powershell
-npx prisma migrate dev --name init
+npm.cmd exec prisma migrate status
 npm.cmd run prisma:seed
 ```
 
-The seed is safe to run multiple times. It creates these categories without duplicates:
+The seed is safe to run repeatedly. It creates demo users for all three roles, migrated requester profiles, realistic tickets, comments/notes, categories, and related systems. Seed credentials are for local development only; do not commit real secrets.
+
+The reference categories are:
 
 1. Account and Access
 2. Hardware
@@ -94,7 +100,7 @@ cd client
 npm.cmd run dev
 ```
 
-Open `http://localhost:5173`, select an active Development Requester, and continue to Create Ticket. Use **My Tickets** to search, filter, sort, page through, and open only that requester's tickets. Use **Change Requester** to test requester ownership. If the API or database is unavailable, the page shows a safe error and preserves entered ticket form values.
+Open `http://localhost:5173` and sign in with a seeded local account. Users with an initial password must complete the Change Password screen before continuing. The application then routes each role to its permitted workspace. If the API or database is unavailable, the page shows safe failure feedback.
 
 ## REST API
 
@@ -127,6 +133,10 @@ Response:
 ]
 ```
 
+### Lab 3 API areas
+
+The authenticated API supports login/logout/current-user, mandatory password change, requester ticket and attachment ownership, IT Staff queue and ticket workflow operations, Public Comments, Internal Notes, and Administrator user management. Protected operations enforce authorization on the server; hiding a client control is not a security boundary.
+
 ## Run automated tests
 
 Run server API tests:
@@ -150,7 +160,7 @@ cd ..
 npm.cmd run test:e2e -- --reporter=line
 ```
 
-The committed visual evidence for the Lab 2 submission belongs under `artifacts/lab-02/screenshots/`; temporary Playwright output is ignored.
+The committed visual evidence for the Lab 3 submission belongs under `artifacts/lab-03/screenshots/`. Lab 3 documentation is under `docs/lab-03/`.
 
 ## Repository structure
 
@@ -171,6 +181,35 @@ toktickit/
 └── README.md
 ```
 
+## Lab 3 documentation and evidence
+
+The Lab 3 engineering contract, API/UI specifications, test traceability, AI-use record, reviewer evidence, release checklist, and final screenshots are stored here:
+
+```text
+docs/lab-03/
+├── specification.md
+├── api-spec.md
+├── ui-spec.md
+├── tests.md
+├── reviewer.md
+├── ai-use.md
+└── release-checklist.md
+```
+
 ## Git workflow
 
-Lab 1 work uses `main` as the stable branch and `lab1-staging` as the integration branch. Each Issue is implemented in its required feature branch, reviewed through a Pull Request to `lab1-staging`, and merged to `main` only after all Lab 1 work is complete.
+Lab 3 uses `lab3-staging` as the integration branch and `main` as the stable branch. Each Issue is implemented in a feature branch and reviewed through a Pull Request into `lab3-staging`. After staged integration and approval, `lab3-staging` is merged into `main` through the final release PR (#46).
+
+```text
+main
+  └── lab3-staging
+        ├── feature/lab3-1-specification
+        ├── feature/lab3-2-authentication
+        ├── feature/lab3-3-authorization-requester
+        ├── feature/lab3-4-authentication-ui
+        ├── feature/lab3-5-staff-ticket-queue
+        ├── feature/lab3-6-ticket-workflow
+        ├── feature/lab3-7-admin-users
+        ├── feature/lab3-8-final-release
+        └── feature/3-documentation
+```
