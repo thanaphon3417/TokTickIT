@@ -12,6 +12,10 @@ server/prisma/*.db
 # logs & OS
 *.log
 .DS_Store
-# Playwright execution output; committed visual evidence belongs under artifacts/lab-02/screenshots/.
+# Playwright execution output.
+# Lab 3 visual evidence under artifacts/lab-03/screenshots/ is committed intentionally.
 test-results/
 playwright-report/
+
+# Lab 2 exploratory screenshot artifacts are intentionally excluded from releases.
+/artifacts/lab-02/screenshots/
