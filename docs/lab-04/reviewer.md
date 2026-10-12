@@ -5,8 +5,8 @@ Record real reviewer identity, issue/PR links, review comments, author responses
 | Issue | Feature branch | Target | PR | Reviewer | Review / response / approval | Merge commit |
 | --- | --- | --- | --- | --- | --- | --- |
 | [#47](https://github.com/thanaphon3417/TokTickIT/issues/47) | `feature/lab4-1-planning` | `lab4-staging` | [PR #54](https://github.com/thanaphon3417/TokTickIT/pull/54) | `siripitch-c` | Approved: “Everything looks good. Approved.” Merged 2026-10-12 | `36b75cf` |
-| [#48](https://github.com/thanaphon3417/TokTickIT/issues/48) | `feature/lab4-2-actions-api` | `lab4-staging` | [PR #55](https://github.com/thanaphon3417/TokTickIT/pull/55) | Awaiting friend review | Pending | Pending |
-| [#49](https://github.com/thanaphon3417/TokTickIT/issues/49) | `feature/lab4-3-actions-ui` | `lab4-staging` | Pending | Pending | Pending | Pending |
+| [#48](https://github.com/thanaphon3417/TokTickIT/issues/48) | `feature/lab4-2-actions-api` | `lab4-staging` | [PR #55](https://github.com/thanaphon3417/TokTickIT/pull/55) | `siripitch-c` | Approved 2026-10-12; merged | `48220a9` |
+| [#49](https://github.com/thanaphon3417/TokTickIT/issues/49) | `feature/lab4-3-actions-ui` | `lab4-staging` | [PR #56](https://github.com/thanaphon3417/TokTickIT/pull/56) | Pending | Awaiting friend review | Pending |
 | [#50](https://github.com/thanaphon3417/TokTickIT/issues/50) | `feature/lab4-4-ticket-workflow` | `lab4-staging` | Pending | Pending | Pending | Pending |
 | [#51](https://github.com/thanaphon3417/TokTickIT/issues/51) | `feature/lab4-5-dashboards` | `lab4-staging` | Pending | Pending | Pending | Pending |
 | [#52](https://github.com/thanaphon3417/TokTickIT/issues/52) | `feature/lab4-6-final-release` | `lab4-staging` | Pending | Pending | Pending | Pending |

@@ -47,6 +47,10 @@ describe("Ticket Actions Taken API", () => {
     const otherRequester = await login("ben.carter@example.com");
     expect((await otherRequester.get(`/api/tickets/${ticketId}/actions`)).status).toBe(404);
     expect((await staff.get(`/api/tickets/${ticketId}/actions`)).status).toBe(200);
+    const admin = await login("avery.admin@toktickit.local");
+    expect((await admin.get("/api/staff/tickets")).status).toBe(200);
+    expect((await admin.get(`/api/staff/tickets/${ticketId}`)).status).toBe(200);
+    expect((await admin.get("/api/staff/users")).status).toBe(200);
   });
 
   it("validates, authorizes, and idempotently creates actions, then version-checks edits", async () => {

@@ -2,7 +2,8 @@
 
 ## Tools used
 
-- Codex (GPT-6), 2026-10-12: handout analysis, issue planning, and review preparation. Implementation and final product reflection are still pending.
+- Codex (GPT-6), 2026-10-12: handout analysis, issue planning, and review preparation.
+- Codex (GPT-6), 2026-10-12: Issue #49 Actions Taken UI implementation, Administrator access-path review, API wiring, and component/browser test verification. The existing Zen Green theme was retained.
 
 ## Selected prompts used during planning
 
@@ -14,6 +15,8 @@ These are excerpts from the actual user prompts in this planning conversation. A
 4. “Re-name all the issues to this format `feature/lab4-x-name`; x is run number.”
 5. “Make sure everything until now is correct according to lab4 instruction file.”
 6. “Fix everything that needed to be fixed.”
+7. “PR approved!” and “a reminder to prevent any errors, UIs are remain the same theme as they are parts of requirement in instruction”.
+8. “let's continue”.
 
 ## My Reflection
 

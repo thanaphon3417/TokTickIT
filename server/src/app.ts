@@ -30,7 +30,7 @@ async function requireRequester(req: Request, res: Response): Promise<number | n
 async function requireStaff(req: Request, res: Response): Promise<boolean> {
   const user = await currentUser(req);
   if (!user) { res.status(401).json({ error: "Authentication is required." }); return false; }
-  if (user.role !== "IT_STAFF") { res.status(403).json({ error: "IT Staff access is required." }); return false; }
+  if (user.role !== "IT_STAFF" && user.role !== "ADMINISTRATOR") { res.status(403).json({ error: "Staff or Administrator access is required." }); return false; }
   if (user.mustChangePassword) { res.status(403).json({ error: "A password change is required before using the application." }); return false; }
   return true;
 }

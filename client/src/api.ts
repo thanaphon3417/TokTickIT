@@ -95,6 +95,34 @@ export type StaffUser = { id: number; name: string; email: string };
 export type AdminUser = StaffUser & { role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR"; isActive: boolean; mustChangePassword: boolean; createdAt: string; updatedAt: string };
 export type TicketWorkflowUpdate = { ownerId?: number | null; itPriority?: "LOW" | "MEDIUM" | "HIGH"; currentStatus?: string };
 export type CollaborationEntry = { id: number; body: string; createdAt: string; author: { id: number; name: string; role: string } };
+export type TicketAction = { id: number; ticketId: number; actionDateTime: string; description: string; result: string | null; performedById: number; assigneeId: number | null; followUpRequired: boolean; followUpNote: string | null; attachmentNotes: string | null; status: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"; version: number; createdAt: string; updatedAt: string; performedBy: { id: number; name: string; email: string }; assignee: { id: number; name: string; email: string } | null };
+export type TicketActionInput = { actionDateTime: string; description: string; result: string; assigneeId: number | null; followUpRequired: boolean; followUpNote: string; attachmentNotes: string };
+
+async function actionApiError(response: Response, fallback: string): Promise<never> {
+  const body = await response.json().catch(() => ({}));
+  const error = new Error(body.error ?? fallback) as Error & { fieldErrors?: Record<string, string>; currentVersion?: number; currentStatus?: string; statusCode: number };
+  error.fieldErrors = body.fieldErrors; error.currentVersion = body.currentVersion; error.currentStatus = body.currentStatus; error.statusCode = response.status;
+  throw error;
+}
+
+export async function getTicketActions(ticketId: number): Promise<TicketAction[]> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/actions`, sessionOptions);
+  if (!response.ok) return actionApiError(response, "Unable to retrieve ticket actions.");
+  return response.json() as Promise<TicketAction[]>;
+}
+
+export async function createTicketAction(ticketId: number, input: TicketActionInput, idempotencyKey: string): Promise<TicketAction> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/actions`, { method: "POST", ...sessionOptions, headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey }, body: JSON.stringify(input) });
+  if (!response.ok) return actionApiError(response, "Unable to create ticket action.");
+  return response.json() as Promise<TicketAction>;
+}
+
+export async function updateTicketAction(ticketId: number, actionId: number, input: TicketActionInput & { expectedVersion: number; status: TicketAction["status"] }): Promise<TicketAction> {
+  const { actionDateTime: _immutableDate, ...editable } = input;
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/actions/${actionId}`, { method: "PATCH", ...sessionOptions, headers: { "Content-Type": "application/json" }, body: JSON.stringify(editable) });
+  if (!response.ok) return actionApiError(response, "Unable to update ticket action.");
+  return response.json() as Promise<TicketAction>;
+}
 
 export async function getStaffTickets(query: StaffQueueQuery): Promise<StaffQueueResponse> {
   const params = new URLSearchParams(); Object.entries(query).forEach(([key, value]) => { if (value !== undefined) params.set(key, String(value)); });

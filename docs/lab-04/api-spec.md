@@ -2,6 +2,10 @@
 
 All protected endpoints require the existing HTTP-only session cookie. Missing/expired session returns `401`; authenticated but disallowed role returns `403`. A requester accessing a non-owned ticket receives `404`. JSON errors use `{ "error": "safe message", "fieldErrors"?: { "field": "message" } }`.
 
+## Staff ticket workspace
+
+IT Staff and Administrators may use `GET /api/staff/tickets`, `GET /api/staff/tickets/:ticketId`, and `GET /api/staff/users` to reach permitted ticket details and active IT Staff assignees. Requesters are denied. Ticket and action mutation authorization remains enforced by the corresponding write endpoints.
+
 ## Actions Taken
 
 ### `GET /api/tickets/:ticketId/actions`
