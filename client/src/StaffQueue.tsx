@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { CollaborationEntry, getCategories, getInternalNotes, getStaffTicket, getStaffTickets, getStaffUsers, getTicketComments, postInternalNote, postTicketComment, ReferenceItem, StaffQueueQuery, StaffQueueResponse, StaffTicketDetail, StaffUser, updateStaffTicket } from "./api.js";
+import ActionsTaken from "./ActionsTaken.js";
 
 const statuses = ["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CLOSED", "REOPENED", "CANCELLED"];
 const badgeClass = (value: string) => `queue-badge queue-badge--${value.toLowerCase().replaceAll("_", "-")}`;
@@ -62,6 +63,7 @@ export default function StaffQueue({ onLogout, staffName }: { onLogout: () => vo
     <section className="staff-detail" aria-label="Staff Ticket Detail">
       <button className="btn btn-outline-success mb-4" type="button" onClick={() => setDetail(null)}>← Back to Queue</button>
       <dl className="staff-detail__grid"><div><dt>Requester</dt><dd>{detail.requester.name}</dd></div><div><dt>Category</dt><dd>{detail.category.name}</dd></div><div><dt>Related system</dt><dd>{detail.relatedSystem.name}</dd></div><div><dt>Requested priority</dt><dd>{renderBadge(detail.requestedPriority)}</dd></div><div className="staff-detail__wide"><dt>Summary</dt><dd>{detail.summary}</dd></div><div className="staff-detail__wide"><dt>Description</dt><dd>{detail.description}</dd></div></dl>
+      <ActionsTaken ticketId={detail.id} canEdit />
       <div className="staff-work-controls"><h2 className="h5">Work controls</h2><Control label="Assignment"><select id="ticket-owner" className="form-select" value={workflow.ownerId} onChange={(event) => setWorkflow({ ...workflow, ownerId: event.target.value })}><option value="">Unassigned</option>{staffUsers.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select></Control><Control label="IT priority"><select id="ticket-it-priority" className="form-select" value={workflow.itPriority} onChange={(event) => setWorkflow({ ...workflow, itPriority: event.target.value })}><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option></select></Control><Control label="Current status"><select id="ticket-status" className="form-select" value={workflow.currentStatus} onChange={(event) => setWorkflow({ ...workflow, currentStatus: event.target.value })}>{statuses.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}</select></Control><button className="btn btn-success" type="button" disabled={saving} onClick={() => void saveWorkflow()}>{saving ? "Saving..." : "Save changes"}</button></div>
       {error && <p className="alert alert-danger mt-3" role="alert">{error}</p>}<Conversation tab={tab} setTab={setTab} entries={tab === "comments" ? comments : notes} attachments={detail.attachments} message={message} setMessage={setMessage} saving={saving} submit={() => void submitMessage()} />
     </section>

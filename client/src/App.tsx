@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AuthenticatedUser, changePassword, createTicket, getAttachmentDownloadUrl, getCategories, getCurrentUser, getSystems, getTicket, getTickets, login, logout, ReferenceItem, TicketDetail, TicketListResponse, removeAttachment, uploadAttachment } from "./api.js";
 import StaffQueue from "./StaffQueue.js";
 import AdminUsers from "./AdminUsers.js";
+import ActionsTaken from "./ActionsTaken.js";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "loading" | "success" | "empty" | "error";
@@ -239,6 +240,7 @@ export default function App() {
             <dt>Summary</dt><dd>{detail.summary}</dd>
             <dt>Description</dt><dd>{detail.description}</dd>
           </dl>
+          <ActionsTaken ticketId={detail.id} canEdit={false} />
           <h3 className="h5">Attachments</h3>
           <label className="form-label" htmlFor="attachment-file">Add attachment</label>
           <input id="attachment-file" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleAttachment(file); }} />
