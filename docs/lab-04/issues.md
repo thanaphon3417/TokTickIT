@@ -62,4 +62,5 @@ The final release PR is an integration PR from `lab4-staging` to `main`, not a s
 
 - GitHub Issues #47–#52 are created with run-number titles; `lab4-staging` is based on the latest stable `main` branch.
 - Issue #47 uses the run-number branch `feature/lab4-1-planning`. Issues #48–#52 use corresponding run-number branch names in the table above.
+- On the Toktickit GitHub Project Kanban, Issue #47 is `PR Review`; Issues #48–#52 remain `Backlog`.
 - The planning PR targets `lab4-staging`; reviewer and merge details are recorded only after they actually occur.

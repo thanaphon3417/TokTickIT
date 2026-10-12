@@ -12,6 +12,8 @@ Record real reviewer identity, issue/PR links, review comments, author responses
 | [#52](https://github.com/thanaphon3417/TokTickIT/issues/52) | `feature/lab4-6-final-release` | `lab4-staging` | Pending | Pending | Pending | Pending |
 | Release integration (not a feature Issue) | `lab4-staging` | `main` | Pending | Pending | Pending | Pending |
 
+PR #53 was closed without merging because its head branch used the GitHub Issue number instead of the Lab 4 run number. PR #54 replaces it from `feature/lab4-1-planning`.
+
 ## Review checklist
 
 - [ ] Contract reviewed before implementation PRs.
