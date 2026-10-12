@@ -2,21 +2,19 @@
 
 ## Tools used
 
-Record the LLM/product name and date for each tool used during Lab 4. Include only actual use and review the generated output before committing it.
+- Codex (GPT-6), 2026-10-12: handout analysis, issue planning, and review preparation. Implementation and final product reflection are still pending.
 
-## Selected prompts
+## Selected prompts used during planning
 
-1. “Convert the Lab 4 stakeholder request into a concise engineering contract with numbered functional requirements, business rules, acceptance criteria, and explicit exclusions.”
-2. “Review the Actions Taken fields and roles; identify missing validation, authorship, assignment, concurrency, and audit rules.”
-3. “Define a complete ticket transition matrix and server-side resolution gate that treats requester resolution feedback as advisory.”
-4. “Define requester and IT Staff dashboard metrics as exact database query rules with UTC boundaries, empty behavior, and drill-down destinations.”
-5. “Review the Prisma migration design for backward compatibility, indexes, repeatable seeding, and a safe recovery plan.”
-6. “Build a test traceability matrix mapping each acceptance criterion to API, UI, regression, responsive, accessibility, and E2E checks.”
-7. “Review these changes for authorization bypass, stale writes, data leakage, duplicate submissions, and unsafe error messages.”
-8. “Inspect the final application against the Zen Green responsive and accessibility checklist and list evidence needed before release.”
+These are excerpts from the actual user prompts in this planning conversation. Add implementation prompts as the work proceeds.
 
-Replace or supplement these examples with the actual prompts used during implementation and cite the relevant issue/PR where possible.
+1. “Let's start Lab4. Please make sure you check everything correct before execute PR.”
+2. “There should be 6 issues include planning.”
+3. “There should be lab4-staging branch.”
+4. “Re-name all the issues to this format `feature/lab4-x-name`; x is run number.”
+5. “Make sure everything until now is correct according to lab4 instruction file.”
+6. “Fix everything that needed to be fixed.”
 
 ## My Reflection
 
-Complete after implementation: explain how specification-agent work clarified decisions, how coding-agent suggestions were checked against the contract and tests, what was changed after human review, and where AI output was incorrect or incomplete. Do not claim tests, review, or findings that did not occur.
+Complete after implementation in the student's own words: explain how specification-agent work clarified decisions, how coding-agent suggestions were checked against the contract and tests, what was changed after human review, and where AI output was incorrect or incomplete. Do not claim tests, review, or findings that did not occur.

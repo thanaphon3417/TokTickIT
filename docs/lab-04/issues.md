@@ -11,7 +11,7 @@ Create these six GitHub Issues before implementation and link each feature branc
 | [#51](https://github.com/thanaphon3417/TokTickIT/issues/51) | `feature/lab4-5-dashboards` | Authorized compact dashboard APIs, exact calculations, zero states, drill-down filters, role-appropriate UI, query/API/component/E2E coverage. | `feature/lab4-5-dashboards` |
 | [#52](https://github.com/thanaphon3417/TokTickIT/issues/52) | `feature/lab4-6-final-release` | Full Lab 1–4 regression; responsive/accessibility/visual inspection; screenshots, README, reviewer and AI-use records; release checklist and staged verification. | `feature/lab4-6-final-release` |
 
-## Proposed GitHub Issue descriptions
+## GitHub Issue descriptions and acceptance criteria
 
 ### Issue 1: `feature/lab4-1-planning`
 
