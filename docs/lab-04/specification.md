@@ -19,7 +19,7 @@ Staff need an auditable work log beneath each ticket, with one ticket owner coor
 - FR-01: A ticket has zero or more Actions Taken. IT Staff and Administrators can create and edit them on accessible tickets; Requesters can read actions for tickets they own.
 - FR-02: Each action records action date/time, description, result, creator/performed-by identity, optional active IT Staff assignee, follow-up-required flag and conditional follow-up note, attachment notes, lifecycle status, and audit timestamps.
 - FR-03: Action writes validate fields, ticket access, role, active assignee, and expected version on the server. Action creation is idempotent so a network retry cannot create a duplicate.
-- FR-04: Ticket transitions follow BR-06. Requester resolution feedback is advisory; only IT Staff/Administrator can formally resolve, close, reopen, or cancel.
+- FR-04: Requesters can set or clear advisory resolution feedback on their own tickets, and IT Staff/Administrators can see it. Ticket transitions follow BR-06; only IT Staff/Administrator can formally resolve, close, reopen, or cancel, and requester feedback never changes ticket status.
 - FR-05: Requester dashboard returns only that user's ticket counts and a concise recent/attention list. Staff and Administrator dashboards return operational counts, current user's assigned actions, and recent/urgent tickets.
 - FR-06: Every dashboard metric is computed from authoritative database records and has a documented drill-down filter and zero-data behavior.
 - FR-07: Existing authentication, requester ownership, ticket queue/detail, comments, notes, attachments, and user management continue to work.
@@ -41,6 +41,7 @@ Staff need an auditable work log beneath each ticket, with one ticket owner coor
 - BR-11: Migration preserves all prior records. Legacy tickets start with version 1 and no actions; absence of actions does not block viewing or dashboards, but staff must record a completed action before resolving them.
 - BR-12: Seed is idempotent and demonstrates every ticket status/priority, assigned/unassigned ownership, tickets with zero/one/multiple actions, follow-up, and both nonzero and zero dashboard cases.
 - BR-13: Action creation requires a client-generated idempotency key unique per authenticated creator. Repeating the same key and normalized payload returns the original Action Taken without another insert; reusing the key with a different payload returns `409`. The key is persisted with a unique `(performedById, idempotencyKey)` constraint and retries return the original saved representation.
+- BR-14: Only the authenticated Requester who owns a ticket may set or clear its `requesterResolved` advisory flag, while the ticket is not CLOSED or CANCELLED. The update changes no ticket status; the server increments the ticket version. IT Staff and Administrators may read the flag but cannot submit feedback on behalf of the Requester. A formal RESOLVED transition is still governed solely by BR-06.
 
 ## 6. UI specification summary
 
@@ -71,6 +72,7 @@ Exact requests, responses, validation and status codes are in [api-spec.md](api-
 - AC-11: Migration preserves prior data; repeatable seed produces the documented representative state.
 - AC-12: Final release docs and evidence accurately report all checks and reviewer outcomes.
 - AC-13: Retrying an Action Taken POST with the same idempotency key and payload returns the same action without duplication; using that key with a different payload returns `409`.
+- AC-14: A Requester can set and clear resolution feedback only on an owned, nonterminal ticket; the ticket status remains unchanged, and IT Staff/Administrators can see the advisory flag and must use the formal workflow to resolve the ticket.
 
 ## 10. Definition of Done
 

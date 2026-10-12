@@ -22,6 +22,10 @@ IT Staff and Administrator only. Request must include `{ expectedVersion, ...edi
 
 Extend the existing endpoint. Every status change includes `{ expectedVersion, currentStatus, resolutionReason? }`; other existing editable fields remain supported. Apply the transition matrix from specification BR-06 atomically. Resolve only when at least one completed action has non-empty result; close only resolved tickets; require reason on reopen/cancel. Stale version returns `409` with safe `{ error, currentVersion, currentStatus }`. Invalid transition/failed resolution gate is `409`; invalid fields/reason `400`; ticket missing `404`; unauthorized `401/403`; safe failure `500`. A successful mutation increments ticket version and returns the updated ticket.
 
+### `PATCH /api/tickets/:ticketId/resolution-feedback`
+
+Requester only, and only for the authenticated user's own ticket. Request: `{ appearsResolved: boolean, expectedVersion: integer }`. This updates the existing `requesterResolved` advisory field and ticket version, but never changes `currentStatus`. Returns `200` with `{ id, ticketNumber, requesterResolved, currentStatus, version, updatedAt }`. Invalid body/ID `400`; absent session `401`; wrong role `403`; inaccessible ticket `404`; stale version `409` with current version/status; safe failure `500`. IT Staff and Administrators read the flag from ticket detail and cannot set it through this endpoint.
+
 ## Dashboards
 
 ### `GET /api/requester/dashboard`

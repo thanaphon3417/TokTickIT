@@ -22,7 +22,9 @@ At desktop, actions use a readable table or aligned rows; under 768px switch to 
 
 ## Ticket workflow
 
-Display only legal next states from the contract. Explain why Resolve is unavailable until a completed action with a result exists. Requester resolution feedback remains informational and never shows formal status success. Reopen/cancel reason is requested inline. After successful mutation, refresh ticket status/version and dashboard data; conflict feedback asks the user to reload/review current status without silently resubmitting.
+On Requester ticket detail, show a labeled “Problem appears resolved” control for owned tickets that are not CLOSED or CANCELLED. Saving it updates the advisory flag and version only; keep the formal ticket status visible and unchanged. Staff/Admin ticket detail displays the Requester’s advisory flag as information only.
+
+Display only legal next states from the contract. Explain why Resolve is unavailable until a completed action with a result exists. Requester feedback never shows formal status success. Reopen/cancel reason is requested inline. After successful mutation, refresh ticket status/version and dashboard data; conflict feedback asks the user to reload/review current status without silently resubmitting.
 
 ## Feedback, responsive behavior, and accessibility checklist
 

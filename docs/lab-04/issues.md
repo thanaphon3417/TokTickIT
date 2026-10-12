@@ -7,7 +7,7 @@ Create these six GitHub Issues before implementation and link each feature branc
 | [#47](https://github.com/thanaphon3417/TokTickIT/issues/47) | `feature/lab4-1-planning` | Review `specification.md`, `api-spec.md`, `ui-spec.md`, and `tests.md`; resolve open contract decisions and map every AC to tests before feature implementation. | `feature/lab4-1-planning` |
 | [#48](https://github.com/thanaphon3417/TokTickIT/issues/48) | `feature/lab4-2-actions-api` | Additive Prisma migration/model, versioning and idempotent Action Taken writes, representative seed, role/ownership-safe APIs, validation and API/migration/recovery tests. | `feature/lab4-2-actions-api` |
 | [#49](https://github.com/thanaphon3417/TokTickIT/issues/49) | `feature/lab4-3-actions-ui` | Requester read-only actions and staff/admin list/create/assign/edit/status UI, responsive validation/feedback, component and E2E coverage. | `feature/lab4-3-actions-ui` |
-| [#50](https://github.com/thanaphon3417/TokTickIT/issues/50) | `feature/lab4-4-ticket-workflow` | Enforce transition matrix and version conflicts server-side; require completed action/result for resolution; advisory requester signal; workflow UI/tests. | `feature/lab4-4-ticket-workflow` |
+| [#50](https://github.com/thanaphon3417/TokTickIT/issues/50) | `feature/lab4-4-ticket-workflow` | Enforce transition matrix and version conflicts server-side; require completed action/result for resolution; add owner-scoped requester advisory feedback; workflow UI/tests. | `feature/lab4-4-ticket-workflow` |
 | [#51](https://github.com/thanaphon3417/TokTickIT/issues/51) | `feature/lab4-5-dashboards` | Authorized compact dashboard APIs, exact calculations, zero states, drill-down filters, role-appropriate UI, query/API/component/E2E coverage. | `feature/lab4-5-dashboards` |
 | [#52](https://github.com/thanaphon3417/TokTickIT/issues/52) | `feature/lab4-6-final-release` | Full Lab 1–4 regression; responsive/accessibility/visual inspection; screenshots, README, reviewer and AI-use records; one submission PDF with the required parts; release checklist and staged verification. | `feature/lab4-6-final-release` |
 
@@ -42,7 +42,7 @@ Create these six GitHub Issues before implementation and link each feature branc
 
 **Goal:** Complete ticket lifecycle with authoritative server-side transition and resolution rules.
 
-**Acceptance criteria:** every matrix edge and forbidden edge is covered; resolve requires completed action with result; close requires resolved; reopen/cancel require reason; requester resolution feedback remains advisory; expected-version mismatch safely returns conflict; UI refreshes status after success.
+**Acceptance criteria:** every matrix edge and forbidden edge is covered; resolve requires completed action with result; close requires resolved; reopen/cancel require reason; requesters can set/clear advisory feedback on their own nonterminal tickets without changing status; staff/admin can see it; expected-version mismatch safely returns conflict; UI refreshes status after success.
 
 ### Issue 5: `feature/lab4-5-dashboards`
 
