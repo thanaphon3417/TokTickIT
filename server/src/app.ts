@@ -329,6 +329,185 @@ app.patch("/api/staff/tickets/:ticketId", async (req: Request, res: Response) =>
   } catch { res.status(500).json({ error: "Unable to update the staff ticket." }); }
 });
 
+const actionInclude = {
+  performedBy: { select: { id: true, name: true, email: true } },
+  assignee: { select: { id: true, name: true, email: true } },
+};
+
+function actionRepresentation<T extends { idempotencyKey: string }>(action: T): Omit<T, "idempotencyKey"> {
+  const { idempotencyKey: _key, ...representation } = action;
+  return representation;
+}
+
+function validIsoDate(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})$/i.exec(value);
+  if (!match || !Number.isFinite(Date.parse(value))) return false;
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText] = match;
+  const year = Number(yearText), month = Number(monthText), day = Number(dayText);
+  const calendarDate = new Date(Date.UTC(year, month - 1, day));
+  return calendarDate.getUTCFullYear() === year && calendarDate.getUTCMonth() === month - 1 && calendarDate.getUTCDate() === day &&
+    Number(hourText) <= 23 && Number(minuteText) <= 59 && Number(secondText) <= 59;
+}
+
+function trimmedOptional(value: unknown, maxLength: number): string | null | undefined {
+  if (value === undefined || value === null) return value;
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed.length <= maxLength ? (trimmed || null) : undefined;
+}
+
+async function actionTicketAccess(req: Request, res: Response, ticketId: number, write: boolean) {
+  const user = await currentUser(req);
+  if (!user) { res.status(401).json({ error: "Authentication is required." }); return null; }
+  if (user.mustChangePassword) { res.status(403).json({ error: "A password change is required before using the application." }); return null; }
+  if (write && user.role === "REQUESTER") { res.status(403).json({ error: "Staff access is required to change actions." }); return null; }
+  if (user.role === "REQUESTER") {
+    const requester = await getPrisma().developmentRequester.findUnique({ where: { userId: user.id }, select: { id: true, isActive: true } });
+    if (!requester || !requester.isActive) { res.status(403).json({ error: "Requester access is unavailable." }); return null; }
+    const ticket = await getPrisma().ticket.findFirst({ where: { id: ticketId, requesterId: requester.id }, select: { id: true } });
+    if (!ticket) { res.status(404).json({ error: "Ticket not found." }); return null; }
+    return user;
+  }
+  if (user.role !== "IT_STAFF" && user.role !== "ADMINISTRATOR") { res.status(403).json({ error: "Ticket access is not allowed." }); return null; }
+  const ticket = await getPrisma().ticket.findUnique({ where: { id: ticketId }, select: { id: true } });
+  if (!ticket) { res.status(404).json({ error: "Ticket not found." }); return null; }
+  return user;
+}
+
+app.get("/api/tickets/:ticketId/actions", async (req: Request, res: Response) => {
+  const ticketId = Number(req.params.ticketId);
+  if (!Number.isInteger(ticketId) || ticketId <= 0) { res.status(400).json({ error: "Invalid ticket ID." }); return; }
+  try {
+    if (!(await actionTicketAccess(req, res, ticketId, false))) return;
+    const user = await currentUser(req);
+    const actions = await getPrisma().ticketAction.findMany({
+      where: { ticketId, ...(user?.role === "REQUESTER" ? { ticket: { requester: { userId: user.id } } } : {}) },
+      include: actionInclude,
+      orderBy: [{ actionDateTime: "asc" }, { id: "asc" }],
+    });
+    res.status(200).json(actions.map(actionRepresentation));
+  } catch { res.status(500).json({ error: "Unable to retrieve ticket actions." }); }
+});
+
+app.post("/api/tickets/:ticketId/actions", async (req: Request, res: Response) => {
+  const ticketId = Number(req.params.ticketId);
+  if (!Number.isInteger(ticketId) || ticketId <= 0) { res.status(400).json({ error: "Invalid ticket ID." }); return; }
+  try {
+    const actor = await actionTicketAccess(req, res, ticketId, true);
+    if (!actor) return;
+    const key = req.header("Idempotency-Key")?.trim() ?? "";
+    const body = req.body ?? {};
+    const fieldErrors: Record<string, string> = {};
+    const accepted = ["actionDateTime", "description", "result", "assigneeId", "followUpRequired", "followUpNote", "attachmentNotes"];
+    if (Object.keys(body).some((field) => !accepted.includes(field))) fieldErrors.body = "Action body contains unsupported fields.";
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(key)) fieldErrors.idempotencyKey = "A UUID Idempotency-Key header is required.";
+    if (!validIsoDate(body.actionDateTime)) fieldErrors.actionDateTime = "A valid ISO-8601 date/time is required.";
+    const description = typeof body.description === "string" ? body.description.trim() : "";
+    if (description.length < 1 || description.length > 2000) fieldErrors.description = "Description must be 1-2000 characters.";
+    const result = trimmedOptional(body.result, 2000);
+    const attachmentNotes = trimmedOptional(body.attachmentNotes, 1000);
+    if (body.result !== undefined && result === undefined) fieldErrors.result = "Result must be at most 2000 characters.";
+    if (body.attachmentNotes !== undefined && attachmentNotes === undefined) fieldErrors.attachmentNotes = "Attachment notes must be at most 1000 characters.";
+    if (typeof body.followUpRequired !== "boolean") fieldErrors.followUpRequired = "Follow-up required must be true or false.";
+    const followUpNote = trimmedOptional(body.followUpNote, 1000);
+    if (body.followUpNote !== undefined && followUpNote === undefined) fieldErrors.followUpNote = "Follow-up note must be at most 1000 characters.";
+    if (body.followUpRequired === true && (typeof followUpNote !== "string" || followUpNote.length === 0)) fieldErrors.followUpNote = "A follow-up note is required.";
+    const assigneeId = body.assigneeId === undefined || body.assigneeId === null || body.assigneeId === "" ? null : Number(body.assigneeId);
+    if (body.assigneeId !== undefined && assigneeId !== null && (!Number.isInteger(assigneeId) || assigneeId <= 0)) fieldErrors.assigneeId = "Assignee ID is invalid.";
+    if (Object.keys(fieldErrors).length) { res.status(400).json({ error: "Validation failed.", fieldErrors }); return; }
+    if (assigneeId !== null) {
+      const assignee = await getPrisma().user.findFirst({ where: { id: assigneeId, role: "IT_STAFF", isActive: true }, select: { id: true } });
+      if (!assignee) { res.status(422).json({ error: "Assignee must be an active IT Staff user." }); return; }
+    }
+
+    const data = {
+      ticketId, actionDateTime: new Date(body.actionDateTime), description,
+      result: result || null, performedById: actor.id, assigneeId,
+      followUpRequired: body.followUpRequired as boolean,
+      followUpNote: body.followUpRequired ? followUpNote : null,
+      attachmentNotes: attachmentNotes || null,
+      status: "PLANNED" as const, idempotencyKey: key,
+    };
+    const existing = await getPrisma().ticketAction.findUnique({ where: { performedById_idempotencyKey: { performedById: actor.id, idempotencyKey: key } }, include: actionInclude });
+    if (existing) {
+      const same = existing.ticketId === data.ticketId && existing.actionDateTime.getTime() === data.actionDateTime.getTime() && existing.description === data.description && existing.result === data.result && existing.assigneeId === data.assigneeId && existing.followUpRequired === data.followUpRequired && existing.followUpNote === data.followUpNote && existing.attachmentNotes === data.attachmentNotes;
+      if (!same) { res.status(409).json({ error: "Idempotency key was already used with a different payload." }); return; }
+      res.status(200).json(actionRepresentation(existing)); return;
+    }
+    let created;
+    try {
+      created = await getPrisma().ticketAction.create({ data, include: actionInclude });
+    } catch (error) {
+      const retry = await getPrisma().ticketAction.findUnique({ where: { performedById_idempotencyKey: { performedById: actor.id, idempotencyKey: key } }, include: actionInclude });
+      if (!retry) throw error;
+      const same = retry.ticketId === data.ticketId && retry.actionDateTime.getTime() === data.actionDateTime.getTime() && retry.description === data.description && retry.result === data.result && retry.assigneeId === data.assigneeId && retry.followUpRequired === data.followUpRequired && retry.followUpNote === data.followUpNote && retry.attachmentNotes === data.attachmentNotes;
+      if (!same) { res.status(409).json({ error: "Idempotency key was already used with a different payload." }); return; }
+      res.status(200).json(actionRepresentation(retry)); return;
+    }
+    res.status(201).json(actionRepresentation(created));
+  } catch { res.status(500).json({ error: "Unable to create ticket action." }); }
+});
+
+app.patch("/api/tickets/:ticketId/actions/:actionId", async (req: Request, res: Response) => {
+  const ticketId = Number(req.params.ticketId), actionId = Number(req.params.actionId);
+  if (!Number.isInteger(ticketId) || ticketId <= 0 || !Number.isInteger(actionId) || actionId <= 0) { res.status(400).json({ error: "Invalid action request." }); return; }
+  try {
+    const actor = await actionTicketAccess(req, res, ticketId, true);
+    if (!actor) return;
+    const body = req.body ?? {};
+    const editable = ["description", "result", "assigneeId", "followUpRequired", "followUpNote", "attachmentNotes", "status"];
+    if (!Number.isInteger(body.expectedVersion) || body.expectedVersion < 1 || Object.keys(body).some((field) => field !== "expectedVersion" && !editable.includes(field)) || !Object.keys(body).some((field) => editable.includes(field))) {
+      res.status(400).json({ error: "Expected version and editable action fields are required." }); return;
+    }
+    const fieldErrors: Record<string, string> = {};
+    const data: Record<string, unknown> = {};
+    if (body.description !== undefined) { const value = typeof body.description === "string" ? body.description.trim() : ""; if (!value || value.length > 2000) fieldErrors.description = "Description must be 1-2000 characters."; else data.description = value; }
+    for (const field of ["result", "attachmentNotes", "followUpNote"] as const) if (body[field] !== undefined) {
+      const max = field === "attachmentNotes" ? 1000 : field === "followUpNote" ? 1000 : 2000;
+      const value = trimmedOptional(body[field], max);
+      if (value === undefined) fieldErrors[field] = `${field} must be at most ${max} characters.`; else data[field] = value;
+    }
+    if (body.assigneeId !== undefined) {
+      const id = body.assigneeId === null || body.assigneeId === "" ? null : Number(body.assigneeId);
+      if (id !== null && (!Number.isInteger(id) || id <= 0)) fieldErrors.assigneeId = "Assignee ID is invalid.";
+      else if (id !== null) {
+        const assignee = await getPrisma().user.findFirst({ where: { id, role: "IT_STAFF", isActive: true }, select: { id: true } });
+        if (!assignee) { res.status(422).json({ error: "Assignee must be an active IT Staff user." }); return; }
+        data.assigneeId = id;
+      } else data.assigneeId = null;
+    }
+    if (body.followUpRequired !== undefined) {
+      if (typeof body.followUpRequired !== "boolean") fieldErrors.followUpRequired = "Follow-up required must be true or false.";
+      else { data.followUpRequired = body.followUpRequired; if (!body.followUpRequired) data.followUpNote = null; }
+    }
+    const current = await getPrisma().ticketAction.findFirst({ where: { id: actionId, ticketId }, include: actionInclude });
+    if (!current) { res.status(404).json({ error: "Action not found." }); return; }
+    const followUpRequiredAfterEdit = body.followUpRequired === undefined ? current.followUpRequired : body.followUpRequired;
+    const followUpNoteAfterEdit = body.followUpRequired === false ? null : body.followUpNote === undefined ? current.followUpNote : trimmedOptional(body.followUpNote, 1000);
+    if (followUpRequiredAfterEdit && (typeof followUpNoteAfterEdit !== "string" || followUpNoteAfterEdit.length === 0)) fieldErrors.followUpNote = "A follow-up note is required.";
+    const transitions: Record<string, string[]> = { PLANNED: ["IN_PROGRESS", "COMPLETED", "CANCELLED"], IN_PROGRESS: ["COMPLETED", "CANCELLED"], COMPLETED: [], CANCELLED: [] };
+    if (body.status !== undefined && (typeof body.status !== "string" || !Object.hasOwn(transitions, body.status))) fieldErrors.status = "Action status is invalid.";
+    if (Object.keys(fieldErrors).length) { res.status(400).json({ error: "Validation failed.", fieldErrors }); return; }
+    if (current.status === "COMPLETED" || current.status === "CANCELLED") {
+      if (body.status === current.status && Object.keys(data).length === 0) { res.status(200).json(actionRepresentation(current)); return; }
+      res.status(409).json({ error: "Terminal actions cannot be edited." }); return;
+    }
+    if (body.status !== undefined && body.status !== current.status && !transitions[current.status].includes(body.status)) { res.status(409).json({ error: "Action status transition is not allowed." }); return; }
+    if (current.version !== body.expectedVersion) { res.status(409).json({ error: "Action was changed by another user.", currentVersion: current.version, currentStatus: current.status }); return; }
+    if (body.status !== undefined) data.status = body.status;
+    const updated = await getPrisma().ticketAction.updateMany({ where: { id: actionId, ticketId, version: body.expectedVersion, status: { notIn: ["COMPLETED", "CANCELLED"] } }, data: { ...data, version: { increment: 1 } } });
+    if (!updated.count) {
+      const latest = await getPrisma().ticketAction.findUnique({ where: { id: actionId } });
+      if (!latest) { res.status(404).json({ error: "Action not found." }); return; }
+      res.status(409).json({ error: "Action was changed by another user.", currentVersion: latest.version, currentStatus: latest.status }); return;
+    }
+    const saved = await getPrisma().ticketAction.findUnique({ where: { id: actionId }, include: actionInclude });
+    if (!saved) { res.status(404).json({ error: "Action not found." }); return; }
+    res.status(200).json(actionRepresentation(saved));
+  } catch { res.status(500).json({ error: "Unable to update ticket action." }); }
+});
+
 app.get("/api/tickets/:ticketId/comments", async (req: Request, res: Response) => {
   const ticketId = Number(req.params.ticketId);
   if (!Number.isInteger(ticketId) || ticketId <= 0) { res.status(400).json({ error: "Invalid ticket request." }); return; }

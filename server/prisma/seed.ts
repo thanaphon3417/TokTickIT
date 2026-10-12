@@ -74,10 +74,11 @@ async function main() {
     if (user.role === "REQUESTER") await prisma.developmentRequester.update({ where: { email: user.email }, data: { userId: savedUser.id } });
   }
 
-  const [amina, ben, iris, hardware, network, software, laptop, vpn, email] = await Promise.all([
+  const [amina, ben, iris, noah, hardware, network, software, laptop, vpn, email] = await Promise.all([
     prisma.developmentRequester.findUniqueOrThrow({ where: { email: "amina.lee@example.com" } }),
     prisma.developmentRequester.findUniqueOrThrow({ where: { email: "ben.carter@example.com" } }),
     prisma.user.findUniqueOrThrow({ where: { email: "iris.staff@toktickit.local" } }),
+    prisma.user.findUniqueOrThrow({ where: { email: "noah.staff@toktickit.local" } }),
     prisma.category.findUniqueOrThrow({ where: { name: "Hardware" } }),
     prisma.category.findUniqueOrThrow({ where: { name: "Network" } }),
     prisma.category.findUniqueOrThrow({ where: { name: "Software" } }),
@@ -91,9 +92,17 @@ async function main() {
     { ticketNumber: "TKT-2026-900002", requesterId: ben.id, categoryId: network.id, relatedSystemId: vpn.id, summary: "VPN access is unavailable", description: "I cannot connect to the campus VPN from my approved device.", requestedPriority: "HIGH" as const, itPriority: "HIGH" as const, currentStatus: "OPEN" as const, ownerId: null },
     { ticketNumber: "TKT-2026-900003", requesterId: amina.id, categoryId: software.id, relatedSystemId: email.id, summary: "Email sync delay", description: "New messages are taking a long time to appear in my mailbox.", requestedPriority: "LOW" as const, itPriority: "LOW" as const, currentStatus: "NEW" as const, ownerId: null },
   ];
-  for (const ticket of demoTickets) await prisma.ticket.upsert({ where: { ticketNumber: ticket.ticketNumber }, update: ticket, create: ticket });
+  const savedTickets = [];
+  for (const ticket of demoTickets) savedTickets.push(await prisma.ticket.upsert({ where: { ticketNumber: ticket.ticketNumber }, update: ticket, create: ticket }));
 
-  console.log("Seeded TokTickIT reference data, demo users, and staff queue tickets.");
+  const demoActions = [
+    { ticketId: savedTickets[0].id, actionDateTime: new Date("2026-10-11T09:00:00.000Z"), description: "Inspected battery health report", result: "Battery health is below expected capacity.", performedById: iris.id, assigneeId: noah.id, followUpRequired: true, followUpNote: "Confirm replacement availability", attachmentNotes: null, status: "IN_PROGRESS" as const, idempotencyKey: "seed-lab4-action-900001-a" },
+    { ticketId: savedTickets[1].id, actionDateTime: new Date("2026-10-10T12:00:00.000Z"), description: "Reviewed VPN connection logs", result: "", performedById: iris.id, assigneeId: iris.id, followUpRequired: false, followUpNote: null, attachmentNotes: "Log bundle reviewed", status: "COMPLETED" as const, idempotencyKey: "seed-lab4-action-900002-a" },
+    { ticketId: savedTickets[1].id, actionDateTime: new Date("2026-10-11T12:00:00.000Z"), description: "Checked VPN gateway route", result: null, performedById: iris.id, assigneeId: noah.id, followUpRequired: false, followUpNote: null, attachmentNotes: null, status: "PLANNED" as const, idempotencyKey: "seed-lab4-action-900002-b" },
+  ];
+  for (const action of demoActions) await prisma.ticketAction.upsert({ where: { performedById_idempotencyKey: { performedById: action.performedById, idempotencyKey: action.idempotencyKey } }, update: action, create: action });
+
+  console.log("Seeded TokTickIT reference data, demo users, staff queue tickets, and representative actions.");
 }
 
 main()
