@@ -18,7 +18,7 @@ Staff need an auditable work log beneath each ticket, with one ticket owner coor
 
 - FR-01: A ticket has zero or more Actions Taken. IT Staff and Administrators can create and edit them on accessible tickets; Requesters can read actions for tickets they own.
 - FR-02: Each action records action date/time, description, result, creator/performed-by identity, optional active IT Staff assignee, follow-up-required flag and conditional follow-up note, attachment notes, lifecycle status, and audit timestamps.
-- FR-03: Action writes validate fields, ticket access, role, active assignee, and expected version on the server.
+- FR-03: Action writes validate fields, ticket access, role, active assignee, and expected version on the server. Action creation is idempotent so a network retry cannot create a duplicate.
 - FR-04: Ticket transitions follow BR-06. Requester resolution feedback is advisory; only IT Staff/Administrator can formally resolve, close, reopen, or cancel.
 - FR-05: Requester dashboard returns only that user's ticket counts and a concise recent/attention list. Staff and Administrator dashboards return operational counts, current user's assigned actions, and recent/urgent tickets.
 - FR-06: Every dashboard metric is computed from authoritative database records and has a documented drill-down filter and zero-data behavior.
@@ -40,6 +40,7 @@ Staff need an auditable work log beneath each ticket, with one ticket owner coor
 - BR-10: A zero metric is `0`; an empty list is `[]` and the UI explains that no records match. Counts and lists are obtained from the same authorization-scoped query rules.
 - BR-11: Migration preserves all prior records. Legacy tickets start with version 1 and no actions; absence of actions does not block viewing or dashboards, but staff must record a completed action before resolving them.
 - BR-12: Seed is idempotent and demonstrates every ticket status/priority, assigned/unassigned ownership, tickets with zero/one/multiple actions, follow-up, and both nonzero and zero dashboard cases.
+- BR-13: Action creation requires a client-generated idempotency key unique per authenticated creator. Repeating the same key and normalized payload returns the original Action Taken without another insert; reusing the key with a different payload returns `409`. The key is persisted with a unique `(performedById, idempotencyKey)` constraint and retries return the original saved representation.
 
 ## 6. UI specification summary
 
@@ -47,7 +48,7 @@ Role navigation adds Dashboard. Requester dashboard links to filtered My Tickets
 
 ## 7. Data changes and migration decisions
 
-Add `TicketAction` with ticket FK, action date/time, description, result, `performedById` (creator), nullable `assigneeId`, follow-up fields, attachment notes, enum status, `version`, created/updated timestamps. Add `Ticket.version` and nullable `resolutionReason` to support stale-write detection and audited reopen/cancel reasons. Add indexes `(ticketId, actionDateTime, id)`, `(assigneeId, status)`, and retain existing ticket owner/status/priority indexes. Use restrictive user references for performed-by/assignee so user history cannot be orphaned; tickets cascade their actions. Additive migration defaults existing ticket versions to 1 and creates no synthetic actions. Seed uses stable unique ticket numbers and upserts related rows/actions. Before migration take a database backup; rollback restores that backup if the additive migration must be reversed, since dropping new tables/columns would discard Lab 4 data.
+Add `TicketAction` with ticket FK, action date/time, description, result, `performedById` (creator), nullable `assigneeId`, follow-up fields, attachment notes, enum status, required `idempotencyKey`, `version`, created/updated timestamps. Add `Ticket.version` and nullable `resolutionReason` to support stale-write detection and audited reopen/cancel reasons. Add indexes `(ticketId, actionDateTime, id)`, `(assigneeId, status)`, and a unique constraint on `(performedById, idempotencyKey)`; retain existing ticket owner/status/priority indexes. Use restrictive user references for performed-by/assignee so user history cannot be orphaned; tickets cascade their actions. Additive migration defaults existing ticket versions to 1 and creates no synthetic actions. Seed uses stable unique ticket numbers and upserts related rows/actions. Before migration take a database backup; rollback restores that backup if the additive migration must be reversed, since dropping new tables/columns would discard Lab 4 data.
 
 **Design decisions:** A separate action assignee preserves the distinction between ticket coordination and task execution. Immutable `performedById` preserves authorship when actions are reassigned. Explicit version counters provide portable stale-write detection and avoid silent last-write-wins behavior. UTC timestamps keep ordering and seven-day dashboard boundaries consistent across client time zones.
 
@@ -69,17 +70,18 @@ Exact requests, responses, validation and status codes are in [api-spec.md](api-
 - AC-10: Screens are usable by keyboard and screen-reader labels, have visible focus and non-color status cues, and have no clipping/overlap/page overflow at desktop, tablet, and mobile widths.
 - AC-11: Migration preserves prior data; repeatable seed produces the documented representative state.
 - AC-12: Final release docs and evidence accurately report all checks and reviewer outcomes.
+- AC-13: Retrying an Action Taken POST with the same idempotency key and payload returns the same action without duplication; using that key with a different payload returns `409`.
 
 ## 10. Definition of Done
 
 - [ ] Four engineering contracts and acceptance/test traceability are reviewed before implementation PRs.
-- [ ] Additive Prisma migration and rollback/recovery steps are documented; existing records remain intact.
+- [ ] Additive Prisma migration and rollback/recovery steps are documented and recovery is rehearsed against a disposable database; existing records remain intact.
 - [ ] API authorization, validation, conflict, transition, dashboard-query and regression tests pass.
 - [ ] UI component/style, responsive, accessibility, and E2E tests pass; desktop/tablet/mobile screenshots are captured.
 - [ ] Manual visual review confirms Zen Green consistency, safe states, drill-down links, no console errors or unfinished controls.
 - [ ] README, seed/migration/demo instructions, `.gitignore`, reviewer record, and AI-use reflection are current.
 - [ ] Six Lab 4 Issues are linked to feature branches and reviewed PRs into `lab4-staging`; final release PR is reviewed into `main`.
-- [ ] Final main branch evidence supports all nine handout submission parts; no review comments remain unresolved.
+- [ ] Final main branch evidence supports all nine handout submission parts, assembled into exactly one concise PDF with headings “Answer Part 1” through “Answer Part 9”, working links, and readable screenshots; no review comments remain unresolved.
 
 ## 11. Assumptions and decisions
 

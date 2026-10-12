@@ -5,11 +5,11 @@ Create these six GitHub Issues before implementation and link each feature branc
 | Issue | Issue title | Scope / completion evidence | Feature branch |
 | --- | --- | --- | --- |
 | [#47](https://github.com/thanaphon3417/TokTickIT/issues/47) | `feature/lab4-1-planning` | Review `specification.md`, `api-spec.md`, `ui-spec.md`, and `tests.md`; resolve open contract decisions and map every AC to tests before feature implementation. | `feature/lab4-1-planning` |
-| [#48](https://github.com/thanaphon3417/TokTickIT/issues/48) | `feature/lab4-2-actions-api` | Additive Prisma migration/model, versioning, idempotent representative seed, role/ownership-safe create/read/update APIs, validation and API/migration tests. | `feature/lab4-2-actions-api` |
+| [#48](https://github.com/thanaphon3417/TokTickIT/issues/48) | `feature/lab4-2-actions-api` | Additive Prisma migration/model, versioning and idempotent Action Taken writes, representative seed, role/ownership-safe APIs, validation and API/migration/recovery tests. | `feature/lab4-2-actions-api` |
 | [#49](https://github.com/thanaphon3417/TokTickIT/issues/49) | `feature/lab4-3-actions-ui` | Requester read-only actions and staff/admin list/create/assign/edit/status UI, responsive validation/feedback, component and E2E coverage. | `feature/lab4-3-actions-ui` |
 | [#50](https://github.com/thanaphon3417/TokTickIT/issues/50) | `feature/lab4-4-ticket-workflow` | Enforce transition matrix and version conflicts server-side; require completed action/result for resolution; advisory requester signal; workflow UI/tests. | `feature/lab4-4-ticket-workflow` |
 | [#51](https://github.com/thanaphon3417/TokTickIT/issues/51) | `feature/lab4-5-dashboards` | Authorized compact dashboard APIs, exact calculations, zero states, drill-down filters, role-appropriate UI, query/API/component/E2E coverage. | `feature/lab4-5-dashboards` |
-| [#52](https://github.com/thanaphon3417/TokTickIT/issues/52) | `feature/lab4-6-final-release` | Full Lab 1–4 regression; responsive/accessibility/visual inspection; screenshots, README, reviewer and AI-use records; release checklist and staged verification. | `feature/lab4-6-final-release` |
+| [#52](https://github.com/thanaphon3417/TokTickIT/issues/52) | `feature/lab4-6-final-release` | Full Lab 1–4 regression; responsive/accessibility/visual inspection; screenshots, README, reviewer and AI-use records; one submission PDF with the required parts; release checklist and staged verification. | `feature/lab4-6-final-release` |
 
 ## GitHub Issue descriptions and acceptance criteria
 
@@ -30,7 +30,7 @@ Create these six GitHub Issues before implementation and link each feature branc
 
 **Goal:** Persist and securely expose Actions Taken while retaining Lab 1–3 records.
 
-**Acceptance criteria:** additive migration preserves old data; actor comes from session; requesters read only owned-ticket actions; staff/admin create and update; validation and active assignee rules are enforced; versions prevent stale overwrite; seed reruns safely and covers zero/one/multiple actions; migration/API tests pass.
+**Acceptance criteria:** additive migration preserves old data; actor comes from session; requesters read only owned-ticket actions; staff/admin create and update; validation and active assignee rules are enforced; versions prevent stale overwrite; retried action creation is idempotent; seed reruns safely and covers zero/one/multiple actions; migration, recovery, and API tests pass.
 
 ### Issue 3: `feature/lab4-3-actions-ui`
 
@@ -54,7 +54,7 @@ Create these six GitHub Issues before implementation and link each feature branc
 
 **Goal:** Verify the complete application and prepare reviewable Lab 4 release evidence.
 
-**Acceptance criteria:** all Lab 1–4 automated suites pass; manual desktop/tablet/mobile and keyboard/accessibility review is recorded; screenshots, README, reviewer and AI-use records are accurate; no unresolved review comments; `lab4-staging` is ready for a separately reviewed release PR to `main`.
+**Acceptance criteria:** all Lab 1–4 automated suites pass; manual desktop/tablet/mobile and keyboard/accessibility review is recorded; screenshots, README, reviewer and AI-use records are accurate; the single submission PDF has exactly the nine required Answer Part headings and working links; no unresolved review comments; `lab4-staging` is ready for a separately reviewed release PR to `main`.
 
 The final release PR is an integration PR from `lab4-staging` to `main`, not a seventh feature Issue.
 
