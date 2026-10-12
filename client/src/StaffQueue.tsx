@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { CollaborationEntry, getCategories, getInternalNotes, getStaffTicket, getStaffTickets, getStaffUsers, getTicketComments, postInternalNote, postTicketComment, ReferenceItem, StaffQueueQuery, StaffQueueResponse, StaffTicketDetail, StaffUser, updateStaffTicket } from "./api.js";
+import { CollaborationEntry, getCategories, getInternalNotes, getStaffTicket, getStaffTickets, getStaffUsers, getTicketActions, getTicketComments, postInternalNote, postTicketComment, ReferenceItem, StaffQueueQuery, StaffQueueResponse, StaffTicketDetail, StaffUser, TicketAction, updateStaffTicket } from "./api.js";
 import ActionsTaken from "./ActionsTaken.js";
 
 const statuses = ["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CLOSED", "REOPENED", "CANCELLED"];
+const ticketTransitions: Record<string, string[]> = { NEW: ["OPEN", "CANCELLED"], OPEN: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"], IN_PROGRESS: ["WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"], WAITING_FOR_REQUESTER: ["IN_PROGRESS", "RESOLVED", "CANCELLED"], RESOLVED: ["CLOSED", "REOPENED"], CLOSED: ["REOPENED"], REOPENED: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"], CANCELLED: [] };
 const badgeClass = (value: string) => `queue-badge queue-badge--${value.toLowerCase().replaceAll("_", "-")}`;
 type Tab = "comments" | "notes" | "attachments";
 
@@ -15,6 +16,9 @@ export default function StaffQueue({ onLogout, staffName, isAdministrator = fals
   const [notes, setNotes] = useState<CollaborationEntry[]>([]);
   const [query, setQuery] = useState<StaffQueueQuery>({ page: 1, pageSize: 10, sortBy: "updatedAt", sortOrder: "desc" });
   const [workflow, setWorkflow] = useState({ ownerId: "", itPriority: "MEDIUM", currentStatus: "NEW" });
+  const [resolutionReason, setResolutionReason] = useState("");
+  const [hasResolutionEvidence, setHasResolutionEvidence] = useState(false);
+  const [workflowConflict, setWorkflowConflict] = useState(false);
   const [tab, setTab] = useState<Tab>("comments");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -35,19 +39,23 @@ export default function StaffQueue({ onLogout, staffName, isAdministrator = fals
     setLoading(true); setError("");
     try {
       const ticket = await getStaffTicket(ticketId);
-      const [nextComments, nextNotes] = await Promise.all([getTicketComments(ticketId), getInternalNotes(ticketId)]);
+      const [nextComments, nextNotes, actions] = await Promise.all([getTicketComments(ticketId), getInternalNotes(ticketId), getTicketActions(ticketId)]);
       setDetail(ticket); setComments(nextComments); setNotes(nextNotes); setMessage(""); setTab("comments");
       setWorkflow({ ownerId: ticket.owner ? String(ticket.owner.id) : "", itPriority: ticket.itPriority, currentStatus: ticket.currentStatus });
+      setResolutionReason(""); setHasResolutionEvidence(actions.some((action) => action.status === "COMPLETED" && Boolean(action.result?.trim()))); setWorkflowConflict(false);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to retrieve the staff ticket."); }
     finally { setLoading(false); }
   }
   async function saveWorkflow() {
     if (!detail) return;
-    setSaving(true); setError("");
+    setSaving(true); setError(""); setWorkflowConflict(false);
     try {
-      const updated = await updateStaffTicket(detail.id, { ownerId: workflow.ownerId ? Number(workflow.ownerId) : null, itPriority: workflow.itPriority as "LOW" | "MEDIUM" | "HIGH", currentStatus: workflow.currentStatus });
+      const changingStatus = workflow.currentStatus !== detail.currentStatus;
+      if (changingStatus && ["CANCELLED", "REOPENED"].includes(workflow.currentStatus) && !resolutionReason.trim()) { setError("Enter a reason before cancelling or reopening this ticket."); return; }
+      const updated = await updateStaffTicket(detail.id, { ownerId: workflow.ownerId ? Number(workflow.ownerId) : null, itPriority: workflow.itPriority as "LOW" | "MEDIUM" | "HIGH", currentStatus: workflow.currentStatus, expectedVersion: detail.version, ...(changingStatus && ["CANCELLED", "REOPENED"].includes(workflow.currentStatus) ? { resolutionReason: resolutionReason.trim() } : {}) });
       setDetail(updated); setWorkflow({ ownerId: updated.owner ? String(updated.owner.id) : "", itPriority: updated.itPriority, currentStatus: updated.currentStatus }); await load(query);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to update the staff ticket."); }
+      setResolutionReason("");
+    } catch (cause) { const failure = cause as Error & { statusCode?: number; currentVersion?: number; currentStatus?: string }; setWorkflowConflict(failure.statusCode === 409); setError(failure.currentVersion ? `${failure.message} Current version: ${failure.currentVersion}; current status: ${failure.currentStatus}. Reload the ticket and review before retrying.` : failure.message || "Unable to update the staff ticket."); }
     finally { setSaving(false); }
   }
   async function submitMessage() {
@@ -62,10 +70,10 @@ export default function StaffQueue({ onLogout, staffName, isAdministrator = fals
   if (detail) return <Shell staffName={staffName} isAdministrator={isAdministrator} onManageUsers={onManageUsers} onLogout={onLogout} onHome={() => { setDetail(null); void load(query); }} title="Ticket Detail" subtitle={detail.ticketNumber}>
     <section className="staff-detail" aria-label="Staff Ticket Detail">
       <button className="btn btn-outline-success mb-4" type="button" onClick={() => setDetail(null)}>← Back to Queue</button>
-      <dl className="staff-detail__grid"><div><dt>Requester</dt><dd>{detail.requester.name}</dd></div><div><dt>Category</dt><dd>{detail.category.name}</dd></div><div><dt>Related system</dt><dd>{detail.relatedSystem.name}</dd></div><div><dt>Requested priority</dt><dd>{renderBadge(detail.requestedPriority)}</dd></div><div className="staff-detail__wide"><dt>Summary</dt><dd>{detail.summary}</dd></div><div className="staff-detail__wide"><dt>Description</dt><dd>{detail.description}</dd></div></dl>
-      <ActionsTaken ticketId={detail.id} canEdit />
-      <div className="staff-work-controls"><h2 className="h5">Work controls</h2><Control label="Assignment"><select id="ticket-owner" className="form-select" value={workflow.ownerId} onChange={(event) => setWorkflow({ ...workflow, ownerId: event.target.value })}><option value="">Unassigned</option>{staffUsers.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select></Control><Control label="IT priority"><select id="ticket-it-priority" className="form-select" value={workflow.itPriority} onChange={(event) => setWorkflow({ ...workflow, itPriority: event.target.value })}><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option></select></Control><Control label="Current status"><select id="ticket-status" className="form-select" value={workflow.currentStatus} onChange={(event) => setWorkflow({ ...workflow, currentStatus: event.target.value })}>{statuses.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}</select></Control><button className="btn btn-success" type="button" disabled={saving} onClick={() => void saveWorkflow()}>{saving ? "Saving..." : "Save changes"}</button></div>
-      {error && <p className="alert alert-danger mt-3" role="alert">{error}</p>}<Conversation tab={tab} setTab={setTab} entries={tab === "comments" ? comments : notes} attachments={detail.attachments} message={message} setMessage={setMessage} saving={saving} submit={() => void submitMessage()} />
+      <dl className="staff-detail__grid"><div><dt>Requester</dt><dd>{detail.requester.name}</dd></div><div><dt>Category</dt><dd>{detail.category.name}</dd></div><div><dt>Related system</dt><dd>{detail.relatedSystem.name}</dd></div><div><dt>Requested priority</dt><dd>{renderBadge(detail.requestedPriority)}</dd></div><div><dt>Requester feedback</dt><dd>{detail.requesterResolved ? "Problem appears resolved (advisory)" : "Requester has not marked the problem resolved"}</dd></div><div className="staff-detail__wide"><dt>Summary</dt><dd>{detail.summary}</dd></div><div className="staff-detail__wide"><dt>Description</dt><dd>{detail.description}</dd></div></dl>
+      <ActionsTaken ticketId={detail.id} canEdit onActionsChange={(actions: TicketAction[]) => setHasResolutionEvidence(actions.some((action) => action.status === "COMPLETED" && Boolean(action.result?.trim())))} />
+      <div className="staff-work-controls"><h2 className="h5">Work controls</h2><Control label="Assignment"><select id="ticket-owner" className="form-select" value={workflow.ownerId} onChange={(event) => setWorkflow({ ...workflow, ownerId: event.target.value })}><option value="">Unassigned</option>{staffUsers.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select></Control><Control label="IT priority"><select id="ticket-it-priority" className="form-select" value={workflow.itPriority} onChange={(event) => setWorkflow({ ...workflow, itPriority: event.target.value as "LOW" | "MEDIUM" | "HIGH" })}><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option></select></Control><Control label="Current status"><select id="ticket-status" className="form-select" value={workflow.currentStatus} onChange={(event) => setWorkflow({ ...workflow, currentStatus: event.target.value })}>{[detail.currentStatus, ...(ticketTransitions[detail.currentStatus] ?? []).filter((status) => status !== "RESOLVED" || hasResolutionEvidence)].map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}</select></Control>{!hasResolutionEvidence && (ticketTransitions[detail.currentStatus] ?? []).includes("RESOLVED") && <p className="text-secondary">Resolve is available after a completed action has a result.</p>}{["CANCELLED", "REOPENED"].includes(workflow.currentStatus) && workflow.currentStatus !== detail.currentStatus && <div className="queue-filter"><label className="form-label" htmlFor="ticket-resolution-reason">Reason</label><textarea id="ticket-resolution-reason" className="form-control" maxLength={500} value={resolutionReason} onChange={(event) => setResolutionReason(event.target.value)} /></div>}<button className="btn btn-success" type="button" disabled={saving} onClick={() => void saveWorkflow()}>{saving ? "Saving..." : "Save changes"}</button></div>
+      {error && <p className="alert alert-danger mt-3" role="alert">{error}{workflowConflict && <button className="btn btn-outline-success ms-2" type="button" onClick={() => void openDetail(detail.id)}>Reload ticket</button>}</p>}<Conversation tab={tab} setTab={setTab} entries={tab === "comments" ? comments : notes} attachments={detail.attachments} message={message} setMessage={setMessage} saving={saving} submit={() => void submitMessage()} />
     </section>
   </Shell>;
 

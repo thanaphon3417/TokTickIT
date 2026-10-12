@@ -7,7 +7,7 @@ const transitions: Record<TicketAction["status"], TicketAction["status"][]> = { 
 const pretty = (value: string) => value.replaceAll("_", " ");
 type ApiFailure = Error & { fieldErrors?: Record<string, string>; currentVersion?: number; currentStatus?: string; statusCode?: number };
 
-export default function ActionsTaken({ ticketId, canEdit }: { ticketId: number; canEdit: boolean }) {
+export default function ActionsTaken({ ticketId, canEdit, onActionsChange }: { ticketId: number; canEdit: boolean; onActionsChange?: (actions: TicketAction[]) => void }) {
   const [actions, setActions] = useState<TicketAction[]>([]);
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +23,7 @@ export default function ActionsTaken({ ticketId, canEdit }: { ticketId: number; 
 
   async function reload() {
     setLoading(true); setError("");
-    try { setActions(await getTicketActions(ticketId)); }
+    try { const next = await getTicketActions(ticketId); setActions(next); onActionsChange?.(next); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to retrieve ticket actions."); }
     finally { setLoading(false); }
   }
@@ -52,12 +52,12 @@ export default function ActionsTaken({ ticketId, canEdit }: { ticketId: number; 
     try {
       if (editing) {
         const updated = await updateTicketAction(ticketId, editing.id, { ...input, expectedVersion: editing.version, status });
-        setActions((current) => current.map((action) => action.id === updated.id ? updated : action)); setSuccess("Action updated.");
+        const next = actions.map((action) => action.id === updated.id ? updated : action); setActions(next); onActionsChange?.(next); setSuccess("Action updated.");
       } else {
         const serialized = JSON.stringify(input);
         if (!idempotency.current || idempotency.current.payload !== serialized) idempotency.current = { payload: serialized, key: crypto.randomUUID() };
         const created = await createTicketAction(ticketId, input, idempotency.current.key);
-        setActions((current) => [...current, created].sort((a, b) => a.actionDateTime.localeCompare(b.actionDateTime) || a.id - b.id)); idempotency.current = null; setSuccess("Action added.");
+        const next = [...actions, created].sort((a, b) => a.actionDateTime.localeCompare(b.actionDateTime) || a.id - b.id); setActions(next); onActionsChange?.(next); idempotency.current = null; setSuccess("Action added.");
       }
       setEditing(null); setEditorOpen(false); setFieldErrors({});
     } catch (cause) {

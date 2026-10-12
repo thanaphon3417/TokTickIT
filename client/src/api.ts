@@ -79,7 +79,7 @@ export interface TicketListQuery {
 }
 
 export interface TicketListResponse {
-  items: Array<{ id: number; ticketNumber: string; summary: string; requestedPriority: string; currentStatus: string; createdAt: string; updatedAt: string; category: ReferenceItem; relatedSystem: ReferenceItem }>;
+  items: Array<{ id: number; ticketNumber: string; summary: string; requestedPriority: string; currentStatus: string; requesterResolved: boolean; version: number; createdAt: string; updatedAt: string; category: ReferenceItem; relatedSystem: ReferenceItem }>;
   pagination: { page: number; pageSize: number; totalItems: number; totalPages: number };
 }
 
@@ -90,10 +90,10 @@ export type StaffQueueTicket = TicketListResponse["items"][number] & {
 };
 export interface StaffQueueResponse { items: StaffQueueTicket[]; pagination: TicketListResponse["pagination"]; }
 export interface StaffQueueQuery { search?: string; categoryId?: string; requestedPriority?: string; currentStatus?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number; }
-export type StaffTicketDetail = StaffQueueTicket & { description: string; ticketDate: string; relatedSystem: ReferenceItem; attachments: AttachmentMetadata[] };
+export type StaffTicketDetail = StaffQueueTicket & { description: string; ticketDate: string; resolutionReason: string | null; relatedSystem: ReferenceItem; attachments: AttachmentMetadata[] };
 export type StaffUser = { id: number; name: string; email: string };
 export type AdminUser = StaffUser & { role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR"; isActive: boolean; mustChangePassword: boolean; createdAt: string; updatedAt: string };
-export type TicketWorkflowUpdate = { ownerId?: number | null; itPriority?: "LOW" | "MEDIUM" | "HIGH"; currentStatus?: string };
+export type TicketWorkflowUpdate = { ownerId?: number | null; itPriority?: "LOW" | "MEDIUM" | "HIGH"; currentStatus?: string; expectedVersion: number; resolutionReason?: string };
 export type CollaborationEntry = { id: number; body: string; createdAt: string; author: { id: number; name: string; role: string } };
 export type TicketAction = { id: number; ticketId: number; actionDateTime: string; description: string; result: string | null; performedById: number; assigneeId: number | null; followUpRequired: boolean; followUpNote: string | null; attachmentNotes: string | null; status: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"; version: number; createdAt: string; updatedAt: string; performedBy: { id: number; name: string; email: string }; assignee: { id: number; name: string; email: string } | null };
 export type TicketActionInput = { actionDateTime: string; description: string; result: string; assigneeId: number | null; followUpRequired: boolean; followUpNote: string; attachmentNotes: string };
@@ -156,8 +156,15 @@ export async function updateAdminUser(id: number, input: { name: string; email: 
 
 export async function updateStaffTicket(ticketId: number, update: TicketWorkflowUpdate): Promise<StaffTicketDetail> {
   const response = await fetch(`${API_URL}/api/staff/tickets/${ticketId}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) });
-  if (!response.ok) return apiError(response, "Unable to update the staff ticket.");
+  if (!response.ok) return actionApiError(response, "Unable to update the staff ticket.");
   return response.json() as Promise<StaffTicketDetail>;
+}
+
+export type RequesterResolutionFeedback = { requesterResolved: boolean; currentStatus: string; version: number; updatedAt: string };
+export async function updateRequesterResolutionFeedback(ticketId: number, appearsResolved: boolean, expectedVersion: number): Promise<RequesterResolutionFeedback> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/resolution-feedback`, { method: "PATCH", ...sessionOptions, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appearsResolved, expectedVersion }) });
+  if (!response.ok) return actionApiError(response, "Unable to save resolution feedback.");
+  return response.json() as Promise<RequesterResolutionFeedback>;
 }
 
 export async function getTicketComments(ticketId: number): Promise<CollaborationEntry[]> {
@@ -192,6 +199,8 @@ export interface TicketDetail {
   description: string;
   requestedPriority: string;
   currentStatus: string;
+  requesterResolved: boolean;
+  version: number;
   createdAt: string;
   updatedAt: string;
   requester: DevelopmentRequester;
