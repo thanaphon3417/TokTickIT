@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AuthenticatedUser, changePassword, createTicket, getAttachmentDownloadUrl, getCategories, getCurrentUser, getSystems, getTicket, getTickets, login, logout, ReferenceItem, TicketDetail, TicketListResponse, removeAttachment, uploadAttachment } from "./api.js";
+import { AuthenticatedUser, changePassword, createTicket, getAttachmentDownloadUrl, getCategories, getCurrentUser, getSystems, getTicket, getTickets, login, logout, ReferenceItem, TicketDetail, TicketListResponse, removeAttachment, updateRequesterResolutionFeedback, uploadAttachment } from "./api.js";
 import StaffQueue from "./StaffQueue.js";
 import AdminUsers from "./AdminUsers.js";
 import ActionsTaken from "./ActionsTaken.js";
@@ -37,6 +37,10 @@ export default function App() {
   const [detail, setDetail] = useState<TicketDetail | null>(null);
   const [detailError, setDetailError] = useState("");
   const [attachmentError, setAttachmentError] = useState("");
+  const [feedbackValue, setFeedbackValue] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackConflict, setFeedbackConflict] = useState(false);
+  const [feedbackSaving, setFeedbackSaving] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -135,10 +139,24 @@ export default function App() {
   async function openDetail(ticketId: number) {
     setDetailError("");
     try {
-      setDetail(await getTicket(ticketId, Number(selectedId)));
+      const next = await getTicket(ticketId, Number(selectedId)); setDetail(next); setFeedbackValue(next.requesterResolved); setFeedbackMessage(""); setFeedbackConflict(false);
     } catch (error) {
       setDetailError(error instanceof Error ? error.message : "Unable to retrieve ticket.");
     }
+  }
+
+  async function saveResolutionFeedback() {
+    if (!detail) return;
+    setFeedbackSaving(true); setFeedbackMessage(""); setFeedbackConflict(false);
+    try {
+      const saved = await updateRequesterResolutionFeedback(detail.id, feedbackValue, detail.version);
+      setDetail({ ...detail, requesterResolved: saved.requesterResolved, currentStatus: saved.currentStatus, version: saved.version, updatedAt: saved.updatedAt });
+      setFeedbackMessage(`Feedback saved. Formal ticket status remains ${saved.currentStatus.replaceAll("_", " ")}.`);
+    } catch (cause) {
+      const failure = cause as Error & { statusCode?: number; currentVersion?: number; currentStatus?: string };
+      setFeedbackConflict(failure.statusCode === 409);
+      setFeedbackMessage(failure.currentVersion ? `${failure.message} Current ticket version: ${failure.currentVersion}; status: ${failure.currentStatus}. Reload and review before retrying.` : failure.message || "Unable to save feedback.");
+    } finally { setFeedbackSaving(false); }
   }
 
   async function handleAttachment(file: File) {
@@ -241,6 +259,7 @@ export default function App() {
             <dt>Summary</dt><dd>{detail.summary}</dd>
             <dt>Description</dt><dd>{detail.description}</dd>
           </dl>
+          {!(["CLOSED", "CANCELLED"].includes(detail.currentStatus)) && <section className="mt-3" aria-labelledby="resolution-feedback-heading"><h3 className="h5" id="resolution-feedback-heading">Resolution feedback</h3><label className="form-check-label d-flex gap-2 align-items-center"><input className="form-check-input mt-0" type="checkbox" checked={feedbackValue} onChange={(event) => setFeedbackValue(event.target.checked)} />Problem appears resolved</label><p className="form-text">This feedback is advisory and does not change your ticket status.</p><button className="btn btn-success" type="button" disabled={feedbackSaving || feedbackValue === detail.requesterResolved} onClick={() => void saveResolutionFeedback()}>{feedbackSaving ? "Saving..." : "Save feedback"}</button>{feedbackMessage && <p className={`alert ${feedbackConflict ? "alert-danger" : feedbackMessage.startsWith("Feedback saved") ? "alert-success" : "alert-danger"} mt-2`} role={feedbackConflict ? "alert" : "status"}>{feedbackMessage}{feedbackConflict && <button className="btn btn-outline-success ms-2" type="button" onClick={() => void openDetail(detail.id)}>Reload ticket</button>}</p>}</section>}
           <ActionsTaken ticketId={detail.id} canEdit={false} />
           <h3 className="h5">Attachments</h3>
           <label className="form-label" htmlFor="attachment-file">Add attachment</label>

@@ -310,21 +310,39 @@ app.patch("/api/staff/tickets/:ticketId", async (req: Request, res: Response) =>
   if (!(await requireStaff(req, res))) return;
   const ticketId = Number(req.params.ticketId);
   if (!Number.isInteger(ticketId) || ticketId <= 0) { res.status(400).json({ error: "Invalid staff ticket request." }); return; }
-  const { ownerId, itPriority, currentStatus } = req.body ?? {};
+  const { ownerId, itPriority, currentStatus, expectedVersion, resolutionReason } = req.body ?? {};
+  if (Object.keys(req.body ?? {}).some((key) => !["ownerId", "itPriority", "currentStatus", "expectedVersion", "resolutionReason"].includes(key))) { res.status(400).json({ error: "Ticket workflow request contains unsupported fields." }); return; }
   if (ownerId === undefined && itPriority === undefined && currentStatus === undefined) { res.status(400).json({ error: "At least one ticket work field is required." }); return; }
+  if (!Number.isInteger(expectedVersion) || expectedVersion < 1) { res.status(400).json({ error: "A positive expectedVersion is required." }); return; }
   if (ownerId !== undefined && ownerId !== null && (!Number.isInteger(ownerId) || ownerId <= 0)) { res.status(400).json({ error: "Owner is invalid." }); return; }
   if (itPriority !== undefined && !["LOW", "MEDIUM", "HIGH"].includes(itPriority)) { res.status(400).json({ error: "IT priority is invalid." }); return; }
   if (currentStatus !== undefined && !Object.hasOwn(allowedStaffTransitions, currentStatus)) { res.status(400).json({ error: "Status is invalid." }); return; }
+  const reason = typeof resolutionReason === "string" ? resolutionReason.trim() : "";
+  if (resolutionReason !== undefined && (typeof resolutionReason !== "string" || resolutionReason.trim().length > 500)) { res.status(400).json({ error: "Reason must be at most 500 characters." }); return; }
   try {
     const prisma = getPrisma();
     const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) { res.status(404).json({ error: "Ticket not found." }); return; }
+    if (ticket.version !== expectedVersion) { res.status(409).json({ error: "Ticket was changed by another user.", currentVersion: ticket.version, currentStatus: ticket.currentStatus }); return; }
     if (ownerId !== undefined && ownerId !== null) {
       const owner = await prisma.user.findFirst({ where: { id: ownerId, role: "IT_STAFF", isActive: true }, select: { id: true } });
       if (!owner) { res.status(400).json({ error: "Owner must be an active IT Staff user." }); return; }
     }
-    if (currentStatus !== undefined && currentStatus !== ticket.currentStatus && !allowedStaffTransitions[ticket.currentStatus].includes(currentStatus)) { res.status(409).json({ error: `Status cannot change from ${ticket.currentStatus} to ${currentStatus}.` }); return; }
-    const updated = await prisma.ticket.update({ where: { id: ticketId }, data: { ...(ownerId !== undefined ? { ownerId } : {}), ...(itPriority !== undefined ? { itPriority } : {}), ...(currentStatus !== undefined ? { currentStatus } : {}) }, include: { requester: true, category: true, relatedSystem: true, owner: { select: { id: true, name: true } } } });
+    const statusChanged = currentStatus !== undefined && currentStatus !== ticket.currentStatus;
+    if (statusChanged && !allowedStaffTransitions[ticket.currentStatus].includes(currentStatus)) { res.status(409).json({ error: `Status cannot change from ${ticket.currentStatus} to ${currentStatus}.`, currentVersion: ticket.version, currentStatus: ticket.currentStatus }); return; }
+    if (statusChanged && ["CANCELLED", "REOPENED"].includes(currentStatus) && !reason) { res.status(400).json({ error: "A reason is required for cancellation or reopening.", fieldErrors: { resolutionReason: "Enter a reason." } }); return; }
+    if (statusChanged && currentStatus === "RESOLVED") {
+      const completed = await prisma.ticketAction.findMany({ where: { ticketId, status: "COMPLETED", result: { not: null } }, select: { result: true } });
+      if (!completed.some((action) => action.result?.trim())) { res.status(409).json({ error: "Complete an action with a non-empty result before resolving.", currentVersion: ticket.version, currentStatus: ticket.currentStatus }); return; }
+    }
+    if (statusChanged && currentStatus === "CLOSED" && ticket.currentStatus !== "RESOLVED") { res.status(409).json({ error: "Only resolved tickets can be closed.", currentVersion: ticket.version, currentStatus: ticket.currentStatus }); return; }
+    const updatedCount = await prisma.ticket.updateMany({ where: { id: ticketId, version: expectedVersion }, data: { ...(ownerId !== undefined ? { ownerId } : {}), ...(itPriority !== undefined ? { itPriority } : {}), ...(statusChanged ? { currentStatus, ...(reason ? { resolutionReason: reason } : {}) } : {}), version: { increment: 1 } } });
+    if (!updatedCount.count) {
+      const latest = await prisma.ticket.findUnique({ where: { id: ticketId }, select: { version: true, currentStatus: true } });
+      if (!latest) { res.status(404).json({ error: "Ticket not found." }); return; }
+      res.status(409).json({ error: "Ticket was changed by another user.", currentVersion: latest.version, currentStatus: latest.currentStatus }); return;
+    }
+    const updated = await prisma.ticket.findUnique({ where: { id: ticketId }, include: { requester: true, category: true, relatedSystem: true, owner: { select: { id: true, name: true } } } });
     res.status(200).json(updated);
   } catch { res.status(500).json({ error: "Unable to update the staff ticket." }); }
 });
@@ -662,6 +680,31 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
   } catch {
     res.status(500).json({ error: "Unable to retrieve tickets." });
   }
+});
+
+app.patch("/api/tickets/:ticketId/resolution-feedback", async (req: Request, res: Response) => {
+  const requesterId = await requireRequester(req, res);
+  if (!requesterId) return;
+  const ticketId = Number(req.params.ticketId);
+  const { appearsResolved, expectedVersion } = req.body ?? {};
+  if (!Number.isInteger(ticketId) || ticketId <= 0 || typeof appearsResolved !== "boolean" || !Number.isInteger(expectedVersion) || expectedVersion < 1 || Object.keys(req.body ?? {}).some((key) => !["appearsResolved", "expectedVersion"].includes(key))) {
+    res.status(400).json({ error: "appearsResolved and a positive expectedVersion are required." }); return;
+  }
+  try {
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId }, select: { id: true, requesterResolved: true, currentStatus: true, version: true } });
+    if (!ticket) { res.status(404).json({ error: "Ticket not found." }); return; }
+    if (["CLOSED", "CANCELLED"].includes(ticket.currentStatus)) { res.status(409).json({ error: "Feedback is unavailable for terminal tickets.", currentVersion: ticket.version, currentStatus: ticket.currentStatus }); return; }
+    if (ticket.version !== expectedVersion) { res.status(409).json({ error: "Ticket was changed by another user.", currentVersion: ticket.version, currentStatus: ticket.currentStatus }); return; }
+    const changed = await prisma.ticket.updateMany({ where: { id: ticketId, requesterId, version: expectedVersion, currentStatus: { notIn: ["CLOSED", "CANCELLED"] } }, data: { requesterResolved: appearsResolved, version: { increment: 1 } } });
+    if (!changed.count) {
+      const latest = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId }, select: { version: true, currentStatus: true } });
+      if (!latest) { res.status(404).json({ error: "Ticket not found." }); return; }
+      res.status(409).json({ error: "Ticket was changed by another user.", currentVersion: latest.version, currentStatus: latest.currentStatus }); return;
+    }
+    const updated = await prisma.ticket.findUniqueOrThrow({ where: { id: ticketId }, select: { id: true, ticketNumber: true, requesterResolved: true, currentStatus: true, version: true, updatedAt: true } });
+    res.status(200).json(updated);
+  } catch { res.status(500).json({ error: "Unable to save resolution feedback." }); }
 });
 
 app.get("/api/tickets/:ticketId", async (req: Request, res: Response) => {
