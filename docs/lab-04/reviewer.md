@@ -4,7 +4,7 @@ Record real reviewer identity, issue/PR links, review comments, author responses
 
 | Issue | Feature branch | Target | PR | Reviewer | Review / response / approval | Merge commit |
 | --- | --- | --- | --- | --- | --- | --- |
-| [#47](https://github.com/thanaphon3417/TokTickIT/issues/47) | `feature/lab4-1-planning` | `lab4-staging` | Planning PR (link recorded after creation) | Awaiting review | Pending | Pending |
+| [#47](https://github.com/thanaphon3417/TokTickIT/issues/47) | `feature/lab4-1-planning` | `lab4-staging` | [PR #54](https://github.com/thanaphon3417/TokTickIT/pull/54) | Awaiting review | Pending | Pending |
 | [#48](https://github.com/thanaphon3417/TokTickIT/issues/48) | `feature/lab4-2-actions-api` | `lab4-staging` | Pending | Pending | Pending | Pending |
 | [#49](https://github.com/thanaphon3417/TokTickIT/issues/49) | `feature/lab4-3-actions-ui` | `lab4-staging` | Pending | Pending | Pending | Pending |
 | [#50](https://github.com/thanaphon3417/TokTickIT/issues/50) | `feature/lab4-4-ticket-workflow` | `lab4-staging` | Pending | Pending | Pending | Pending |
