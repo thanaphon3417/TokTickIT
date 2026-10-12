@@ -3,6 +3,7 @@ import { AuthenticatedUser, changePassword, createTicket, getAttachmentDownloadU
 import StaffQueue from "./StaffQueue.js";
 import AdminUsers from "./AdminUsers.js";
 import ActionsTaken from "./ActionsTaken.js";
+import AdminWorkspace from "./AdminWorkspace.js";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "loading" | "success" | "empty" | "error";
@@ -159,7 +160,7 @@ export default function App() {
   if (!user) return <LoginScreen error={authError} busy={authBusy} onSubmit={establishSession} />;
   if (user.mustChangePassword) return <ChangePasswordScreen error={authError} busy={authBusy} onSubmit={savePassword} />;
   if (user.role === "IT_STAFF") return <StaffQueue staffName={user.name} onLogout={() => void endSession()} />;
-  if (user.role === "ADMINISTRATOR") return <AdminUsers adminName={user.name} onLogout={() => void endSession()} />;
+  if (user.role === "ADMINISTRATOR") return <AdminWorkspace adminName={user.name} onLogout={() => void endSession()} />;
   if (user.role !== "REQUESTER") return <AuthFrame><h1 className="h3">Welcome, {user.name}</h1><p>Your workspace is being prepared.</p><button className="btn btn-outline-success" type="button" onClick={() => void endSession()}>Log out</button></AuthFrame>;
 
   return (

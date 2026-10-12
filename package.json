@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "echo \"Run server and client tests from their package directories\"",
-    "test:e2e": "playwright test e2e/lab-02"
+    "test:e2e": "playwright test e2e/lab-02",
+    "test:e2e:lab4": "playwright test e2e/lab-04"
   },
   "repository": {
     "type": "git",
