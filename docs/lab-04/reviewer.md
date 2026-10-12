@@ -4,13 +4,13 @@ Record real reviewer identity, issue/PR links, review comments, author responses
 
 | Issue | Feature branch | Target | PR | Reviewer | Review / response / approval | Merge commit |
 | --- | --- | --- | --- | --- | --- | --- |
-| [#47](https://github.com/thanaphon3417/TokTickIT/issues/47) | `feature/lab4-47-planning` | `lab4-staging` | [PR #53](https://github.com/thanaphon3417/TokTickIT/pull/53) | Awaiting review | Pending | Pending |
-| [#48](https://github.com/thanaphon3417/TokTickIT/issues/48) | `feature/lab4-48-actions-api` | `lab4-staging` | Pending | Pending | Pending | Pending |
-| [#49](https://github.com/thanaphon3417/TokTickIT/issues/49) | `feature/lab4-49-actions-ui` | `lab4-staging` | Pending | Pending | Pending | Pending |
-| [#50](https://github.com/thanaphon3417/TokTickIT/issues/50) | `feature/lab4-50-ticket-workflow` | `lab4-staging` | Pending | Pending | Pending | Pending |
-| [#51](https://github.com/thanaphon3417/TokTickIT/issues/51) | `feature/lab4-51-dashboards` | `lab4-staging` | Pending | Pending | Pending | Pending |
-| [#52](https://github.com/thanaphon3417/TokTickIT/issues/52) | `feature/lab4-52-final-release` | `lab4-staging` | Pending | Pending | Pending | Pending |
-| Release integration (not a feature Issue) | `lab4-staging` | `main` | Pending GitHub access | Pending | Pending | Pending |
+| [#47](https://github.com/thanaphon3417/TokTickIT/issues/47) | `feature/lab4-1-planning` | `lab4-staging` | Planning PR (link recorded after creation) | Awaiting review | Pending | Pending |
+| [#48](https://github.com/thanaphon3417/TokTickIT/issues/48) | `feature/lab4-2-actions-api` | `lab4-staging` | Pending | Pending | Pending | Pending |
+| [#49](https://github.com/thanaphon3417/TokTickIT/issues/49) | `feature/lab4-3-actions-ui` | `lab4-staging` | Pending | Pending | Pending | Pending |
+| [#50](https://github.com/thanaphon3417/TokTickIT/issues/50) | `feature/lab4-4-ticket-workflow` | `lab4-staging` | Pending | Pending | Pending | Pending |
+| [#51](https://github.com/thanaphon3417/TokTickIT/issues/51) | `feature/lab4-5-dashboards` | `lab4-staging` | Pending | Pending | Pending | Pending |
+| [#52](https://github.com/thanaphon3417/TokTickIT/issues/52) | `feature/lab4-6-final-release` | `lab4-staging` | Pending | Pending | Pending | Pending |
+| Release integration (not a feature Issue) | `lab4-staging` | `main` | Pending | Pending | Pending | Pending |
 
 ## Review checklist
 
