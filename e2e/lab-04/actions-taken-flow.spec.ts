@@ -21,6 +21,7 @@ test("staff records an action that the ticket requester can view read-only on mo
   await staffPage.route("**/api/**", async (route) => {
     const request = route.request(); const url = new URL(request.url()); const path = url.pathname;
     if (path === "/api/auth/me") return route.fulfill({ json: { user: staff } });
+    if (path === "/api/staff/dashboard") return route.fulfill({ json: { metrics: { unassigned: 0, ownedByMe: 1, byStatus: { OPEN: 1 }, byPriority: { MEDIUM: 1 }, myOpenActions: 0 }, myActions: [], recentTickets: [{ ...listItem, itPriority: "MEDIUM" }], urgentTickets: [] } });
     if (path === "/api/categories") return route.fulfill({ json: [{ id: 1, name: "Hardware" }] });
     if (path === "/api/staff/users") return route.fulfill({ json: [{ id: staff.id, name: staff.name, email: staff.email }] });
     if (path === "/api/staff/tickets" && request.method() === "GET") return route.fulfill({ json: { items: [{ ...listItem, requester: { id: requester.id, name: requester.name }, itPriority: "MEDIUM", owner: { id: staff.id, name: staff.name } }], pagination: { page: 1, pageSize: 10, totalItems: 1, totalPages: 1 } } });
@@ -35,6 +36,9 @@ test("staff records an action that the ticket requester can view read-only on mo
     return route.fulfill({ status: 404, json: { error: `Unexpected E2E request: ${request.method()} ${path}` } });
   });
   await staffPage.goto("/");
+  await expect(staffPage.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
+  await expect(staffPage.getByRole("button", { name: ticket.ticketNumber })).toBeVisible();
+  await staffPage.getByRole("button", { name: "My Queue" }).click();
   await staffPage.getByRole("button", { name: ticket.ticketNumber }).click();
   await staffPage.setViewportSize({ width: 390, height: 844 });
   await staffPage.getByRole("button", { name: "Add action" }).click();

@@ -13,7 +13,7 @@ describe("Ticket workflow UI", () => {
     vi.spyOn(api, "getStaffTickets").mockResolvedValue({ items: [base], pagination: { page: 1, pageSize: 10, totalItems: 1, totalPages: 1 } });
     vi.spyOn(api, "getStaffTicket").mockResolvedValue({ ...base, description: "Ticket detail", ticketDate: "2026-01-01", resolutionReason: null, attachments: [] });
     vi.spyOn(api, "getTicketActions").mockResolvedValue([]); vi.spyOn(api, "getTicketComments").mockResolvedValue([]); vi.spyOn(api, "getInternalNotes").mockResolvedValue([]);
-    const user = userEvent.setup(); render(<StaffQueue staffName="Iris" onLogout={() => undefined} />);
+    const user = userEvent.setup(); render(<StaffQueue staffName="Iris" onLogout={() => undefined} onDashboard={() => undefined} />);
     await user.click(await screen.findByRole("button", { name: base.ticketNumber }));
     expect(await screen.findByText("Problem appears resolved (advisory)")).toBeInTheDocument();
     expect(screen.queryByRole("checkbox", { name: "Problem appears resolved" })).not.toBeInTheDocument();

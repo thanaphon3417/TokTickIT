@@ -171,25 +171,85 @@ app.get("/api/systems", async (_req: Request, res: Response) => {
   }
 });
 
+const dashboardWindow = 7 * 24 * 60 * 60 * 1000;
+const nonterminalStatuses = ["CLOSED", "CANCELLED"] as const;
+const dashboardTicketSelect = { id: true, ticketNumber: true, summary: true, currentStatus: true, requestedPriority: true, itPriority: true, updatedAt: true } as const;
+const requesterDashboardTicketSelect = { id: true, ticketNumber: true, summary: true, currentStatus: true, requestedPriority: true, updatedAt: true } as const;
+
+app.get("/api/requester/dashboard", async (req: Request, res: Response) => {
+  const requesterId = await requireRequester(req, res);
+  if (!requesterId) return;
+  try {
+    const prisma = getPrisma();
+    const now = new Date();
+    const since = new Date(now.getTime() - dashboardWindow);
+    const scope = { requesterId };
+    const [open, waitingForRequester, recentlyUpdated, recentlyResolved, recentTickets, attentionTickets, recentlyResolvedTickets] = await Promise.all([
+      prisma.ticket.count({ where: { ...scope, currentStatus: { notIn: [...nonterminalStatuses] } } }),
+      prisma.ticket.count({ where: { ...scope, currentStatus: "WAITING_FOR_REQUESTER" } }),
+      prisma.ticket.count({ where: { ...scope, updatedAt: { gte: since, lte: now } } }),
+      prisma.ticket.count({ where: { ...scope, currentStatus: { in: ["RESOLVED", "CLOSED"] }, updatedAt: { gte: since, lte: now } } }),
+      prisma.ticket.findMany({ where: { ...scope, updatedAt: { gte: since, lte: now } }, select: requesterDashboardTicketSelect, orderBy: [{ updatedAt: "desc" }, { id: "desc" }], take: 5 }),
+      prisma.ticket.findMany({ where: { ...scope, currentStatus: "WAITING_FOR_REQUESTER" }, select: requesterDashboardTicketSelect, orderBy: [{ updatedAt: "desc" }, { id: "desc" }], take: 5 }),
+      prisma.ticket.findMany({ where: { ...scope, currentStatus: { in: ["RESOLVED", "CLOSED"] }, updatedAt: { gte: since, lte: now } }, select: requesterDashboardTicketSelect, orderBy: [{ updatedAt: "desc" }, { id: "desc" }], take: 5 }),
+    ]);
+    res.status(200).json({ metrics: { open, waitingForRequester, recentlyUpdated, recentlyResolved }, recentTickets, attentionTickets, recentlyResolvedTickets });
+  } catch { res.status(500).json({ error: "Unable to retrieve the requester dashboard." }); }
+});
+
+app.get("/api/staff/dashboard", async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const actor = await currentUser(req);
+  if (!actor) { res.status(401).json({ error: "Authentication is required." }); return; }
+  try {
+    const prisma = getPrisma();
+    const nonterminal = { currentStatus: { notIn: [...nonterminalStatuses] } };
+    const [unassigned, ownedByMe, statusGroups, priorityGroups, myOpenActions, myActions, recentTickets, urgentTickets] = await Promise.all([
+      prisma.ticket.count({ where: { ...nonterminal, ownerId: null } }),
+      prisma.ticket.count({ where: { ...nonterminal, ownerId: actor.id } }),
+      prisma.ticket.groupBy({ by: ["currentStatus"], where: nonterminal, _count: { _all: true } }),
+      prisma.ticket.groupBy({ by: ["itPriority"], where: nonterminal, _count: { _all: true } }),
+      prisma.ticketAction.count({ where: { assigneeId: actor.id, status: { in: ["PLANNED", "IN_PROGRESS"] } } }),
+      prisma.ticketAction.findMany({ where: { assigneeId: actor.id, status: { in: ["PLANNED", "IN_PROGRESS"] } }, select: { id: true, ticketId: true, description: true, status: true, updatedAt: true, ticket: { select: { id: true, ticketNumber: true, summary: true } } }, orderBy: [{ updatedAt: "desc" }, { id: "desc" }], take: 5 }),
+      prisma.ticket.findMany({ where: nonterminal, select: dashboardTicketSelect, orderBy: [{ updatedAt: "desc" }, { id: "desc" }], take: 5 }),
+      prisma.ticket.findMany({ where: { ...nonterminal, itPriority: "HIGH" }, select: dashboardTicketSelect, orderBy: [{ updatedAt: "desc" }, { id: "desc" }], take: 5 }),
+    ]);
+    const statusKeys = ["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CLOSED", "REOPENED", "CANCELLED"] as const;
+    const priorityKeys = ["LOW", "MEDIUM", "HIGH"] as const;
+    const countValue = (value: unknown) => value && typeof value === "object" && "_all" in value ? Number((value as { _all: number })._all) : 0;
+    const byStatus = Object.fromEntries(statusKeys.map((key) => [key, countValue(statusGroups.find((row) => row.currentStatus === key)?._count)]));
+    const byPriority = Object.fromEntries(priorityKeys.map((key) => [key, countValue(priorityGroups.find((row) => row.itPriority === key)?._count)]));
+    res.status(200).json({ metrics: { unassigned, ownedByMe, byStatus, byPriority, myOpenActions }, myActions, recentTickets, urgentTickets });
+  } catch { res.status(500).json({ error: "Unable to retrieve the staff dashboard." }); }
+});
+
 app.get("/api/staff/tickets", async (req: Request, res: Response) => {
   if (!(await requireStaff(req, res))) return;
+  const actor = await currentUser(req);
+  if (!actor) { res.status(401).json({ error: "Authentication is required." }); return; }
   const page = Number(req.query.page ?? 1);
   const pageSize = Number(req.query.pageSize ?? 10);
   const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
   const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined;
   const requestedPriority = req.query.requestedPriority;
+  const itPriority = req.query.itPriority;
   const currentStatus = req.query.currentStatus;
+  const owner = req.query.owner;
+  const activeOnly = req.query.activeOnly;
   const sortBy = String(req.query.sortBy ?? "updatedAt");
   const sortOrder = String(req.query.sortOrder ?? "desc");
   const sortFields = ["ticketNumber", "createdAt", "updatedAt", "summary", "requestedPriority", "itPriority", "currentStatus"];
-  if (!Number.isInteger(page) || page < 1 || ![5, 10, 20].includes(pageSize) || !sortFields.includes(sortBy) || !["asc", "desc"].includes(sortOrder) || (categoryId !== undefined && !Number.isInteger(categoryId)) || (requestedPriority && !["LOW", "MEDIUM", "HIGH"].includes(String(requestedPriority))) || (currentStatus && !["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CLOSED", "REOPENED", "CANCELLED"].includes(String(currentStatus)))) {
+  if (!Number.isInteger(page) || page < 1 || ![5, 10, 20].includes(pageSize) || !sortFields.includes(sortBy) || !["asc", "desc"].includes(sortOrder) || (categoryId !== undefined && !Number.isInteger(categoryId)) || (requestedPriority && !["LOW", "MEDIUM", "HIGH"].includes(String(requestedPriority))) || (itPriority && !["LOW", "MEDIUM", "HIGH"].includes(String(itPriority))) || (currentStatus && !["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CLOSED", "REOPENED", "CANCELLED"].includes(String(currentStatus))) || (owner && !["me", "unassigned"].includes(String(owner))) || (activeOnly !== undefined && !["true", "false"].includes(String(activeOnly)))) {
     res.status(400).json({ error: "Invalid staff queue query." }); return;
   }
-  const where = {
+  const where: any = {
+    ...(activeOnly === "true" ? { currentStatus: { notIn: [...nonterminalStatuses] } } : {}),
     ...(search ? { OR: [{ ticketNumber: { contains: search, mode: "insensitive" as const } }, { summary: { contains: search, mode: "insensitive" as const } }, { requester: { name: { contains: search, mode: "insensitive" as const } } }] } : {}),
     ...(categoryId !== undefined ? { categoryId } : {}),
     ...(requestedPriority ? { requestedPriority: String(requestedPriority) as "LOW" | "MEDIUM" | "HIGH" } : {}),
-    ...(currentStatus ? { currentStatus: String(currentStatus) as "NEW" | "OPEN" | "IN_PROGRESS" | "WAITING_FOR_REQUESTER" | "RESOLVED" | "CLOSED" | "REOPENED" | "CANCELLED" } : {}),
+    ...(itPriority ? { itPriority: String(itPriority) as "LOW" | "MEDIUM" | "HIGH" } : {}),
+    ...(currentStatus ? { AND: [{ currentStatus: String(currentStatus) as "NEW" | "OPEN" | "IN_PROGRESS" | "WAITING_FOR_REQUESTER" | "RESOLVED" | "CLOSED" | "REOPENED" | "CANCELLED" }] } : {}),
+    ...(owner === "me" ? { ownerId: actor.id } : owner === "unassigned" ? { ownerId: null } : {}),
   };
   try {
     const prisma = getPrisma();
@@ -643,21 +703,28 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
   const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined;
   const requestedPriority = req.query.requestedPriority;
   const currentStatus = req.query.currentStatus;
+  const dashboardFilter = req.query.dashboardFilter;
   const sortBy = req.query.sortBy ?? "createdAt";
   const sortOrder = req.query.sortOrder ?? "desc";
   const sortFields = ["ticketNumber", "createdAt", "summary", "updatedAt"];
 
-  if (!Number.isInteger(page) || page < 1 || ![5, 10, 20].includes(pageSize) || !sortFields.includes(String(sortBy)) || !["asc", "desc"].includes(String(sortOrder))) {
+  const validStatuses = ["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CLOSED", "REOPENED", "CANCELLED"];
+  const validDashboardFilters = ["open", "waiting", "recentlyUpdated", "recentlyResolved"];
+  if (!Number.isInteger(page) || page < 1 || ![5, 10, 20].includes(pageSize) || !sortFields.includes(String(sortBy)) || !["asc", "desc"].includes(String(sortOrder)) || (currentStatus !== undefined && !validStatuses.includes(String(currentStatus))) || (dashboardFilter !== undefined && !validDashboardFilters.includes(String(dashboardFilter))) || (currentStatus !== undefined && dashboardFilter !== undefined)) {
     res.status(400).json({ error: "Invalid ticket list query." });
     return;
   }
 
-  const where = {
+  const now = new Date();
+  const since = new Date(now.getTime() - dashboardWindow);
+  const dashboardWhere: any = dashboardFilter === "open" ? { currentStatus: { notIn: [...nonterminalStatuses] } } : dashboardFilter === "waiting" ? { currentStatus: "WAITING_FOR_REQUESTER" } : dashboardFilter === "recentlyUpdated" ? { updatedAt: { gte: since, lte: now } } : dashboardFilter === "recentlyResolved" ? { currentStatus: { in: ["RESOLVED", "CLOSED"] }, updatedAt: { gte: since, lte: now } } : {};
+  const where: any = {
     requesterId,
+    ...dashboardWhere,
     ...(search ? { OR: [{ ticketNumber: { contains: search, mode: "insensitive" as const } }, { summary: { contains: search, mode: "insensitive" as const } }] } : {}),
     ...(categoryId !== undefined && Number.isInteger(categoryId) ? { categoryId } : {}),
     ...(requestedPriority && ["LOW", "MEDIUM", "HIGH"].includes(String(requestedPriority)) ? { requestedPriority: String(requestedPriority) as "LOW" | "MEDIUM" | "HIGH" } : {}),
-    ...(currentStatus === "NEW" ? { currentStatus: "NEW" as const } : {}),
+    ...(currentStatus ? { currentStatus: String(currentStatus) as "NEW" | "OPEN" | "IN_PROGRESS" | "WAITING_FOR_REQUESTER" | "RESOLVED" | "CLOSED" | "REOPENED" | "CANCELLED" } : {}),
   };
 
   try {

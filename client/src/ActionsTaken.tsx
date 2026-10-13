@@ -7,7 +7,7 @@ const transitions: Record<TicketAction["status"], TicketAction["status"][]> = { 
 const pretty = (value: string) => value.replaceAll("_", " ");
 type ApiFailure = Error & { fieldErrors?: Record<string, string>; currentVersion?: number; currentStatus?: string; statusCode?: number };
 
-export default function ActionsTaken({ ticketId, canEdit, onActionsChange }: { ticketId: number; canEdit: boolean; onActionsChange?: (actions: TicketAction[]) => void }) {
+export default function ActionsTaken({ ticketId, canEdit, onActionsChange, highlightActionId }: { ticketId: number; canEdit: boolean; onActionsChange?: (actions: TicketAction[]) => void; highlightActionId?: number }) {
   const [actions, setActions] = useState<TicketAction[]>([]);
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +28,7 @@ export default function ActionsTaken({ ticketId, canEdit, onActionsChange }: { t
     finally { setLoading(false); }
   }
   useEffect(() => { void reload(); if (canEdit) void getStaffUsers().then(setStaff).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Unable to retrieve active staff.")); }, [ticketId, canEdit]);
+  useEffect(() => { if (!loading && highlightActionId && actions.some((action) => action.id === highlightActionId)) document.getElementById(`ticket-action-${highlightActionId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }); }, [loading, actions, highlightActionId]);
 
   function beginCreate() { setEditing(null); setEditorOpen(true); setForm(emptyForm()); setStatus("PLANNED"); setFieldErrors({}); setError(""); setSuccess(""); idempotency.current = null; }
   function beginEdit(action: TicketAction) {
@@ -73,7 +74,7 @@ export default function ActionsTaken({ ticketId, canEdit, onActionsChange }: { t
     {error && <p className="alert alert-danger mt-3" role="alert">{error} <button type="button" className="btn btn-outline-success ms-2" onClick={() => void reload()}>Reload actions</button></p>}
     {success && <p className="alert alert-success mt-3" role="status">{success}</p>}
     {!loading && !error && actions.length === 0 && <p className="alert alert-info mt-3">No actions have been recorded yet.</p>}
-    {!loading && actions.length > 0 && <div className="actions-list">{actions.map((action) => <article className="actions-card" key={action.id}>
+    {!loading && actions.length > 0 && <div className="actions-list">{actions.map((action) => <article id={`ticket-action-${action.id}`} className={`actions-card${highlightActionId === action.id ? " actions-card--highlighted" : ""}`} key={action.id}>
       <div className="actions-card__header"><h3 className="h6 mb-0">{pretty(action.status)}</h3><time dateTime={action.actionDateTime}>{new Date(action.actionDateTime).toLocaleString()}</time></div>
       <dl className="actions-card__grid"><div><dt>Description</dt><dd>{action.description}</dd></div><div><dt>Result</dt><dd>{action.result || "Not recorded"}</dd></div><div><dt>Performed by</dt><dd>{action.performedBy.name}</dd></div><div><dt>Assignee</dt><dd>{action.assignee?.name ?? "Unassigned"}</dd></div><div><dt>Follow-up</dt><dd>{action.followUpRequired ? `Required: ${action.followUpNote}` : "Not required"}</dd></div><div><dt>Attachment notes</dt><dd>{action.attachmentNotes || "None"}</dd></div></dl>
       {canEdit && !editorOpen && !editing && <button className="btn btn-outline-success mt-2" type="button" disabled={action.status === "COMPLETED" || action.status === "CANCELLED"} onClick={() => beginEdit(action)}>Edit action</button>}

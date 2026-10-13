@@ -74,6 +74,7 @@ export interface TicketListQuery {
   currentStatus?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  dashboardFilter?: "open" | "waiting" | "recentlyUpdated" | "recentlyResolved";
   page?: number;
   pageSize?: number;
 }
@@ -89,7 +90,7 @@ export type StaffQueueTicket = TicketListResponse["items"][number] & {
   owner: { id: number; name: string } | null;
 };
 export interface StaffQueueResponse { items: StaffQueueTicket[]; pagination: TicketListResponse["pagination"]; }
-export interface StaffQueueQuery { search?: string; categoryId?: string; requestedPriority?: string; currentStatus?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number; }
+export interface StaffQueueQuery { search?: string; categoryId?: string; requestedPriority?: string; itPriority?: string; currentStatus?: string; owner?: "me" | "unassigned"; activeOnly?: boolean; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number; }
 export type StaffTicketDetail = StaffQueueTicket & { description: string; ticketDate: string; resolutionReason: string | null; relatedSystem: ReferenceItem; attachments: AttachmentMetadata[] };
 export type StaffUser = { id: number; name: string; email: string };
 export type AdminUser = StaffUser & { role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR"; isActive: boolean; mustChangePassword: boolean; createdAt: string; updatedAt: string };
@@ -97,6 +98,23 @@ export type TicketWorkflowUpdate = { ownerId?: number | null; itPriority?: "LOW"
 export type CollaborationEntry = { id: number; body: string; createdAt: string; author: { id: number; name: string; role: string } };
 export type TicketAction = { id: number; ticketId: number; actionDateTime: string; description: string; result: string | null; performedById: number; assigneeId: number | null; followUpRequired: boolean; followUpNote: string | null; attachmentNotes: string | null; status: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"; version: number; createdAt: string; updatedAt: string; performedBy: { id: number; name: string; email: string }; assignee: { id: number; name: string; email: string } | null };
 export type TicketActionInput = { actionDateTime: string; description: string; result: string; assigneeId: number | null; followUpRequired: boolean; followUpNote: string; attachmentNotes: string };
+
+export type DashboardTicket = { id: number; ticketNumber: string; summary: string; currentStatus: string; requestedPriority: string; updatedAt: string };
+export type RequesterDashboardResponse = { metrics: { open: number; waitingForRequester: number; recentlyUpdated: number; recentlyResolved: number }; recentTickets: DashboardTicket[]; attentionTickets: DashboardTicket[]; recentlyResolvedTickets: DashboardTicket[] };
+export type StaffDashboardAction = { id: number; ticketId: number; description: string; status: TicketAction["status"]; updatedAt: string; ticket: { id: number; ticketNumber: string; summary: string } };
+export type StaffDashboardResponse = { metrics: { unassigned: number; ownedByMe: number; byStatus: Record<string, number>; byPriority: Record<string, number>; myOpenActions: number }; myActions: StaffDashboardAction[]; recentTickets: Array<DashboardTicket & { itPriority: string }>; urgentTickets: Array<DashboardTicket & { itPriority: string }> };
+
+export async function getRequesterDashboard(): Promise<RequesterDashboardResponse> {
+  const response = await fetch(`${API_URL}/api/requester/dashboard`, sessionOptions);
+  if (!response.ok) return apiError(response, "Unable to retrieve the requester dashboard.");
+  return response.json() as Promise<RequesterDashboardResponse>;
+}
+
+export async function getStaffDashboard(): Promise<StaffDashboardResponse> {
+  const response = await fetch(`${API_URL}/api/staff/dashboard`, sessionOptions);
+  if (!response.ok) return apiError(response, "Unable to retrieve the staff dashboard.");
+  return response.json() as Promise<StaffDashboardResponse>;
+}
 
 async function actionApiError(response: Response, fallback: string): Promise<never> {
   const body = await response.json().catch(() => ({}));
