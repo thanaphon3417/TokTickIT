@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as api from "../../src/api.js";
 import StaffQueue from "../../src/StaffQueue.js";
@@ -14,7 +14,7 @@ describe("Ticket workflow UI", () => {
     vi.spyOn(api, "getStaffTicket").mockResolvedValue({ ...base, description: "Ticket detail", ticketDate: "2026-01-01", resolutionReason: null, attachments: [] });
     vi.spyOn(api, "getTicketActions").mockResolvedValue([]); vi.spyOn(api, "getTicketComments").mockResolvedValue([]); vi.spyOn(api, "getInternalNotes").mockResolvedValue([]);
     const user = userEvent.setup(); render(<StaffQueue staffName="Iris" onLogout={() => undefined} onDashboard={() => undefined} />);
-    await user.click(await screen.findByRole("button", { name: base.ticketNumber }));
+    await user.click(await within(await screen.findByRole("table")).findByRole("button", { name: base.ticketNumber }));
     expect(await screen.findByText("Problem appears resolved (advisory)")).toBeInTheDocument();
     expect(screen.queryByRole("checkbox", { name: "Problem appears resolved" })).not.toBeInTheDocument();
   });

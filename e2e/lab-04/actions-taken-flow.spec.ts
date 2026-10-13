@@ -100,3 +100,39 @@ test("administrator can reach ticket detail and create an action from the existi
   await page.getByRole("button", { name: "Users" }).click();
   await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
 });
+
+test("staff action retry reuses its idempotency key and creates one row after a lost response", async ({ page }) => {
+  const keys: string[] = []; let attempts = 0; let saved: ReturnType<typeof action> | null = null;
+  await page.route("**/api/**", async (route) => {
+    const request = route.request(); const path = new URL(request.url()).pathname;
+    if (path === "/api/auth/me") return route.fulfill({ json: { user: staff } });
+    if (path === "/api/staff/dashboard") return route.fulfill({ json: { metrics: { unassigned: 0, ownedByMe: 1, byStatus: { OPEN: 1 }, byPriority: { MEDIUM: 1 }, myOpenActions: 0 }, myActions: [], recentTickets: [{ ...listItem, itPriority: "MEDIUM" }], urgentTickets: [] } });
+    if (path === "/api/categories") return route.fulfill({ json: [{ id: 1, name: "Hardware" }] });
+    if (path === "/api/staff/users") return route.fulfill({ json: [{ id: staff.id, name: staff.name, email: staff.email }] });
+    if (path === "/api/staff/tickets" && request.method() === "GET") return route.fulfill({ json: { items: [{ ...listItem, requester: { id: requester.id, name: requester.name }, itPriority: "MEDIUM", owner: { id: staff.id, name: staff.name } }], pagination: { page: 1, pageSize: 10, totalItems: 1, totalPages: 1 } } });
+    if (path === `/api/staff/tickets/${ticketId}`) return route.fulfill({ json: ticket });
+    if (path === `/api/tickets/${ticketId}/comments` || path === `/api/tickets/${ticketId}/notes`) return route.fulfill({ json: [] });
+    if (path === `/api/tickets/${ticketId}/actions` && request.method() === "GET") return route.fulfill({ json: saved ? [saved] : [] });
+    if (path === `/api/tickets/${ticketId}/actions` && request.method() === "POST") {
+      attempts += 1; keys.push(request.headers()["idempotency-key"] ?? "");
+      if (attempts === 1) return route.fulfill({ status: 503, json: { error: "Temporary network interruption" } });
+      saved = action((request.postDataJSON() as { description: string }).description);
+      return route.fulfill({ status: 201, json: saved });
+    }
+    return route.fulfill({ status: 404, json: { error: `Unexpected E2E request: ${request.method()} ${path}` } });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "My Queue" }).click();
+  await page.getByRole("button", { name: ticket.ticketNumber }).click();
+  await page.getByRole("button", { name: "Add action" }).click();
+  await page.getByLabel("Description").fill("Retried after interrupted response");
+  await page.getByRole("button", { name: "Save action" }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByLabel("Description")).toHaveValue("Retried after interrupted response");
+  await page.getByRole("button", { name: "Save action" }).click();
+  await expect(page.getByText("Retried after interrupted response")).toBeVisible();
+  expect(attempts).toBe(2);
+  expect(keys[0]).toBeTruthy();
+  expect(keys[1]).toBe(keys[0]);
+  expect(saved?.description).toBe("Retried after interrupted response");
+});

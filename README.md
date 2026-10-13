@@ -1,10 +1,6 @@
 # TokTickIT
 
-Lab 2 delivers the requester-facing ticket MVP: development requester selection, ticket creation, requester-owned ticket lists and detail, and permitted attachment upload, download, and soft removal. The selector is a testing mechanism, not authentication.
-
-TokTickIT is an IT service desk application. Lab 1 delivers a small full-stack vertical slice that proves the frontend, REST API, Prisma ORM, and PostgreSQL database work together.
-
-Clicking **Check System** in the browser calls the backend health endpoint and retrieves the supported request categories from PostgreSQL.
+TokTickIT is a full-stack IT service desk application developed across Labs 1–4. It supports authenticated Requesters, IT Staff, and Administrators; ticket creation and lifecycle management; comments, internal notes, and attachments; Actions Taken; and role-appropriate dashboards. Lab 4 extends the established Zen Green interface while preserving earlier lab workflows.
 
 ## Technology
 
@@ -69,7 +65,16 @@ npx prisma migrate dev --name init
 npm.cmd run prisma:seed
 ```
 
-The seed is safe to run multiple times. It creates these categories without duplicates:
+The seed is safe to run multiple times. It creates the reference data without duplicates. For an existing Lab 3 database, back it up first, then apply the additive Lab 4 migration and seed representative accounts, tickets, and actions:
+
+```powershell
+npx.cmd prisma migrate deploy
+npm.cmd run prisma:seed
+```
+
+See [the migration and recovery procedure](docs/lab-04/migration-recovery.md) before migrating a persistent database. Existing records are preserved.
+
+The initial category seed includes:
 
 1. Account and Access
 2. Hardware
@@ -94,7 +99,7 @@ cd client
 npm.cmd run dev
 ```
 
-Open `http://localhost:5173`, select an active Development Requester, and continue to Create Ticket. Use **My Tickets** to search, filter, sort, page through, and open only that requester's tickets. Use **Change Requester** to test requester ownership. If the API or database is unavailable, the page shows a safe error and preserves entered ticket form values.
+Open `http://localhost:5173` and sign in with an active seeded account. Requesters can create tickets, view their own ticket history, and mark a problem as apparently resolved. IT Staff and Administrators can use their dashboards and queues to manage tickets and Actions Taken. Role navigation and access are enforced by the backend. Local demonstration accounts are defined in `server/prisma/seed.ts`; never reuse their credentials in a shared environment.
 
 ## REST API
 
@@ -150,27 +155,38 @@ cd ..
 npm.cmd run test:e2e -- --reporter=line
 ```
 
-The committed visual evidence for the Lab 2 submission belongs under `artifacts/lab-02/screenshots/`; temporary Playwright output is ignored.
+Run Lab 4 browser flows with Playwright (which starts Vite automatically):
+
+```powershell
+npx.cmd playwright test e2e/lab-04 --workers=1 --reporter=list
+```
+
+Committed visual evidence belongs under `artifacts/lab-02/screenshots/` and `artifacts/lab-04/screenshots/`; temporary Playwright output is ignored.
+
+## Lab 4 engineering and evidence
+
+- [Sprint 4 specification](docs/lab-04/specification.md), [API contract](docs/lab-04/api-spec.md), and [UI specification](docs/lab-04/ui-spec.md)
+- [Test plan and final verification record](docs/lab-04/tests.md)
+- [Visual and accessibility review](docs/lab-04/visual-accessibility-checklist.md)
+- [Submission PDF draft (replace with finalized evidence before submitting)](artifacts/lab-04/submission.pdf) · [editable HTML source](docs/lab-04/submission.html)
+- [Reviewer evidence](docs/lab-04/reviewer.md) and [AI-use record](docs/lab-04/ai-use.md)
+- [Migration and recovery procedure](docs/lab-04/migration-recovery.md)
+- [Lab 4 screenshots](artifacts/lab-04/screenshots/)
+
+Lab 4 feature PRs target `lab4-staging`; final integration to `main` is reviewed separately after staged verification.
 
 ## Repository structure
 
 ```text
 toktickit/
-├── client/
-│   ├── src/
-│   └── tests/lab-01/
-├── server/
-│   ├── prisma/
-│   ├── src/
-│   └── tests/lab-01/
-├── docs/lab-01/
-│   ├── ai_use.md
-│   ├── reviewer.md
-│   └── tests.md
-├── .gitignore
+├── artifacts/lab-02/ and artifacts/lab-04/screenshots/
+├── client/src/ and client/tests/lab-*/
+├── docs/lab-01/ through docs/lab-04/
+├── e2e/lab-02/ and e2e/lab-04/
+├── server/prisma/, server/src/, and server/tests/lab-*/
 └── README.md
 ```
 
 ## Git workflow
 
-Lab 1 work uses `main` as the stable branch and `lab1-staging` as the integration branch. Each Issue is implemented in its required feature branch, reviewed through a Pull Request to `lab1-staging`, and merged to `main` only after all Lab 1 work is complete.
+Each lab uses its documented staging branch and issue-specific feature branches. For Lab 4, feature PRs target `lab4-staging`; after final regression and evidence review, a separately reviewed release PR integrates `lab4-staging` into `main`.

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>TokTickIT Lab 4 Submission Draft</title>
+<style>
+@page{size:A4;margin:18mm}body{font:11pt/1.45 Arial,sans-serif;color:#19382a}h1{font-size:18pt;color:#075e37;margin:20pt 0 5pt}h2{font-size:12pt;margin:0 0 10pt;color:#254b37}.draft{padding:10px 14px;border:1px solid #b87818;background:#fff5db;color:#714800}a{color:#075e37}li{margin:4px 0}.meta{color:#53685d;font-size:9pt}
+</style></head>
+<body>
+<h1>TokTickIT Lab 4</h1><p class="draft"><strong>WORKING DRAFT — DO NOT SUBMIT YET.</strong> Update Part 1 after the release PR is merged and the Kanban is Done; add the student's own reflection in Part 4; complete the human checks in Part 9; rerun final verification against <code>main</code>.</p>
+<p class="meta">Repository: <a href="https://github.com/thanaphon3417/TokTickIT">TokTickIT</a> · Current work: <code>feature/lab4-6-final-release</code> · Evidence snapshot: 2026-10-13</p>
+
+<h1>Answer Part 1</h1><h2>Git Use with Engineering Workflow</h2>
+<ul><li>Six Lab 4 Issues use run-number branches; feature PRs #54–#58 target <code>lab4-staging</code>. The separately reviewed release PR to <code>main</code> is pending.</li><li>Approvals and merge commits for PRs #54–#58: <a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/docs/lab-04/reviewer.md">reviewer.md</a>.</li><li>Final Project/Kanban state with all Issues Done: pending release completion.</li><li><a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/README.md">README</a> · <a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/.gitignore">.gitignore</a> · <a href="https://github.com/thanaphon3417/TokTickIT">repository structure</a>.</li></ul>
+
+<h1>Answer Part 2</h1><h2>Spec DD</h2>
+<p>The contract was reviewed before implementation work and is recorded in the planning PR. See <a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/docs/lab-04/specification.md">specification.md</a>, <a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/docs/lab-04/api-spec.md">api-spec.md</a>, and <a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/docs/lab-04/ui-spec.md">ui-spec.md</a>.</p>
+
+<h1>Answer Part 3</h1><h2>Test DD and Traceability</h2>
+<p><a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/docs/lab-04/tests.md">Test plan, AC traceability, files, and results</a>. On this branch: server 19 files / 40 tests; client 10 files / 16 tests; Lab 4 browser 8 tests; server and client production builds pass. Final output from <code>main</code> remains pending release merge.</p>
+
+<h1>Answer Part 4</h1><h2>AI Use with Reflection</h2>
+<p><a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/docs/lab-04/ai-use.md">AI-use record and selected prompts</a>. The student's own reflection has not yet been supplied and must be written before submission; do not submit this draft with the reflection prompt unchanged.</p>
+
+<h1>Answer Part 5</h1><h2>Working IT Staff Dashboard UI</h2>
+<p>Backend-calculated metrics, assigned actions, recent/urgent tickets, filters, loading/error states, and links are covered by API/component/E2E checks. <a href="https://github.com/thanaphon3417/TokTickIT/tree/feature/lab4-6-final-release/artifacts/lab-04/screenshots/staff-dashboard">Desktop, tablet, and mobile screenshots</a>; calculations and tests are linked in <a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/docs/lab-04/tests.md">tests.md</a>.</p>
+
+<h1>Answer Part 6</h1><h2>Working Actions Taken UI</h2>
+<p>Evidence covers action list/create/read-only requester view, validation, edit and status controls, idempotent retry component coverage, API role/assignee enforcement, and safe errors. <a href="https://github.com/thanaphon3417/TokTickIT/tree/feature/lab4-6-final-release/artifacts/lab-04/screenshots/actions-taken">Action detail screenshots</a> · <a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/docs/lab-04/api-spec.md">API contract</a>.</p>
+
+<h1>Answer Part 7</h1><h2>Working Ticket Workflow</h2>
+<p>Permitted and forbidden transitions, resolution evidence, reason requirements, stale versions, and requester advisory invariance are covered by workflow API, component, and browser checks. See <a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/docs/lab-04/specification.md">business rules</a> and <a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/docs/lab-04/tests.md">test results</a>.</p>
+
+<h1>Answer Part 8</h1><h2>Working Requester Dashboard and Final Regression UI</h2>
+<p>Requester metrics are session-owner scoped; dashboard filters link to detailed tickets. Full earlier-lab server/client regressions pass. <a href="https://github.com/thanaphon3417/TokTickIT/tree/feature/lab4-6-final-release/artifacts/lab-04/screenshots/requester-dashboard">Requester dashboard screenshots</a> · <a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/docs/lab-04/tests.md">representative regression evidence</a>.</p>
+
+<h1>Answer Part 9</h1><h2>Zen Green UI, Responsive, Accessibility, and Final Polish</h2>
+<p>Zen Green styles are retained. Dashboard and action-detail screenshots cover desktop, tablet, and mobile; browser checks cover visible keyboard focus, an associated Status label, and no horizontal overflow at 390/768/1280px. See the <a href="https://github.com/thanaphon3417/TokTickIT/blob/feature/lab4-6-final-release/docs/lab-04/visual-accessibility-checklist.md">visual/accessibility checklist</a>. Screen-reader, contrast, and extended keyboard checks remain for a human reviewer before the final PDF is submitted.</p>
+</body></html>
