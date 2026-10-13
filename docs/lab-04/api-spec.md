@@ -45,11 +45,13 @@ Requester only. Scope comes exclusively from authenticated user relation. Return
 }
 ```
 
-Recent rows contain only ticket ID/number, summary, status, priority and updated time, ordered newest first with stable ID tie-break, capped at five. Attention list is waiting-for-requester tickets, capped at five. `recentlyResolved` counts tickets with current status RESOLVED or CLOSED and `updatedAt` within the prior 168 hours. Other definitions and UTC boundary are specification BR-08. No data returns zeroes and empty arrays. Failure is safe `500`.
+Recent rows contain only ticket ID/number, summary, status, priority and updated time, limited to the prior 168 hours in UTC, ordered newest first with stable ID tie-break, capped at five. Attention list is waiting-for-requester tickets, capped at five. `recentlyUpdated` and `recentlyResolved` metrics use that same inclusive UTC window; recently resolved means current status RESOLVED or CLOSED. Other definitions are in specification BR-08. No data returns zeroes and empty arrays. Failure is safe `500`.
 
 ### `GET /api/staff/dashboard`
 
 IT Staff and Administrator only. Returns `200` with `{ metrics: { unassigned, ownedByMe, byStatus, byPriority, myOpenActions }, myActions: [], recentTickets: [], urgentTickets: [] }`. Non-terminal means status not CLOSED/CANCELLED. `byStatus` and `byPriority` include all defined keys with zero counts. `myActions` are assigned to current staff and PLANNED/IN_PROGRESS; Administrator's `myActions` is `[]` unless the user has eligible action assignments. Recent tickets are ordered by `updatedAt DESC, id DESC`; urgent tickets are HIGH IT Priority; each list capped at five and includes only compact ticket fields plus ID/number. Empty lists and zero counts are valid. Failure is safe `500`.
+
+`GET /api/staff/tickets` accepts `activeOnly=true` to restrict queue drill-downs to non-terminal tickets, matching dashboard counts. It can be combined with `owner=me|unassigned`, `currentStatus`, and `itPriority`; invalid values return `400`.
 
 ## Existing APIs and common behavior
 
