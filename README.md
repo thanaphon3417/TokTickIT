@@ -1,6 +1,15 @@
 # TokTickIT
 
 TokTickIT is a full-stack IT service desk application developed across Labs 1–4. It supports authenticated Requesters, IT Staff, and Administrators; ticket creation and lifecycle management; comments, internal notes, and attachments; Actions Taken; and role-appropriate dashboards. Lab 4 extends the established Zen Green interface while preserving earlier lab workflows.
+Lab 3 replaces the temporary requester selector with secure session-based authentication and role-based authorization. It adds mandatory first-login password change, Requester ownership protection, the IT Staff queue and ticket workflow, Public Comments/Internal Notes, and Administrator user management. Lab 2 ticket and attachment data remains available after migration.
+
+TokTickIT is an IT service desk application developed incrementally through Labs 1–3. The application uses a React/Vite client, an Express REST API, Prisma ORM, and PostgreSQL.
+
+Authenticated users see role-specific navigation:
+
+- Requester: create and manage owned tickets, attachments, and public comments.
+- IT Staff: search the shared queue, open ticket detail, assign ownership, set IT priority, update status, and post comments or internal notes.
+- Administrator: list, search, create, edit, activate/deactivate, and reset initial passwords for users.
 
 ## Technology
 
@@ -69,7 +78,7 @@ The seed is safe to run multiple times. It creates reference data without duplic
 
 See [the migration and recovery procedure](docs/lab-04/migration-recovery.md) before migrating a persistent database. Existing records are preserved.
 
-The initial category seed includes:
+The initial category seed includes demo users for all three roles, migrated requester profiles, realistic tickets, comments/notes, categories, related systems, and representative Lab 4 actions. Seed credentials are for local development only; do not commit real secrets.
 
 1. Account and Access
 2. Hardware
@@ -94,7 +103,8 @@ cd client
 npm.cmd run dev
 ```
 
-Open `http://localhost:5173` and sign in with an active seeded account. Requesters can create tickets, view their own ticket history, and mark a problem as apparently resolved. IT Staff and Administrators can use their dashboards and queues to manage tickets and Actions Taken. Role navigation and access are enforced by the backend. Local demonstration accounts are defined in `server/prisma/seed.ts`; never reuse their credentials in a shared environment.
+Open `http://localhost:5173` and sign in with a seeded local account. Users with an initial password must complete the Change Password screen before continuing. The application then routes each role to its permitted workspace. If the API or database is unavailable, the page shows safe failure feedback.
+Requesters can create tickets, view their own ticket history, and mark a problem as apparently resolved. IT Staff and Administrators can use their dashboards and queues to manage tickets and Actions Taken. Role navigation and access are enforced by the backend. Local demonstration accounts are defined in `server/prisma/seed.ts`; never reuse their credentials in a shared environment.
 
 ## REST API
 
@@ -126,6 +136,10 @@ Response:
   { "id": 4, "name": "Network" }
 ]
 ```
+
+### Lab 3 API areas
+
+The authenticated API supports login/logout/current-user, mandatory password change, requester ticket and attachment ownership, IT Staff queue and ticket workflow operations, Public Comments, Internal Notes, and Administrator user management. Protected operations enforce authorization on the server; hiding a client control is not a security boundary.
 
 ## Run automated tests
 
@@ -168,6 +182,7 @@ Committed visual evidence belongs under `artifacts/lab-02/screenshots/` and `art
 - [Migration and recovery procedure](docs/lab-04/migration-recovery.md)
 - [Lab 4 screenshots](artifacts/lab-04/screenshots/)
 
+The committed visual evidence for the Lab 3 submission belongs under `artifacts/lab-03/screenshots/`. Lab 3 documentation is under `docs/lab-03/`.
 All six Lab 4 feature PRs are approved and merged into `lab4-staging`. Final integration to `main` remains a separately reviewed release step after the current `main` documentation changes are integrated and final evidence is refreshed.
 
 ## Repository structure
@@ -182,6 +197,36 @@ toktickit/
 └── README.md
 ```
 
+## Lab 3 documentation and evidence
+
+The Lab 3 engineering contract, API/UI specifications, test traceability, AI-use record, reviewer evidence, release checklist, and final screenshots are stored here:
+
+```text
+docs/lab-03/
+├── specification.md
+├── api-spec.md
+├── ui-spec.md
+├── tests.md
+├── reviewer.md
+├── ai-use.md
+└── release-checklist.md
+```
+
 ## Git workflow
 
 Each lab uses its documented staging branch and issue-specific feature branches. Lab 4 feature PRs targeted `lab4-staging`; after final regression and evidence review, a separately reviewed release PR will integrate `lab4-staging` into `main`.
+Lab 3 uses `lab3-staging` as the integration branch and `main` as the stable branch. Each Issue is implemented in a feature branch and reviewed through a Pull Request into `lab3-staging`. After staged integration and approval, `lab3-staging` is merged into `main` through the final release PR (#46).
+
+```text
+main
+  └── lab3-staging
+        ├── feature/lab3-1-specification
+        ├── feature/lab3-2-authentication
+        ├── feature/lab3-3-authorization-requester
+        ├── feature/lab3-4-authentication-ui
+        ├── feature/lab3-5-staff-ticket-queue
+        ├── feature/lab3-6-ticket-workflow
+        ├── feature/lab3-7-admin-users
+        ├── feature/lab3-8-final-release
+        └── feature/3-documentation
+```
