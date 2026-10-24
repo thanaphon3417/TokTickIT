@@ -30,7 +30,7 @@ Plan tests before feature implementation. Record the actual test path and final 
 | E2E-03 | E2E | AC-06, AC-07, AC-08 | Requester and staff dashboard calculations and drill-down | UI metrics match seeded database and detail filters | `e2e/lab-04/dashboards.spec.ts` | Passed: 2026-10-13; 2 isolated browser flows verify requester/status filter query and filtered destinations |
 | E2E-04 | E2E | AC-13 | Retry Action Taken creation after a simulated lost response | Exactly one action appears and the retry returns the stored action | `e2e/lab-04/actions-taken-flow.spec.ts` | Passed: 2026-10-13; simulated 503 preserves form values and retries with the same key, producing one saved action |
 | E2E-05 | E2E | AC-14 | Requester marks own ticket appears-resolved and staff reviews feedback | Advisory flag is visible to staff while status remains unchanged until a staff transition | `e2e/lab-04/ticket-resolution.spec.ts` | Passed: 2026-10-13; browser saves advisory feedback while formal status remains OPEN; staff read-only visibility covered by component test |
-| PERF-01 | Performance smoke | AC-07 | Dashboard endpoints with seeded representative volume | Bounded summary payloads and stable query response | Documented local smoke using seeded DB | Not run; do not claim performance verification in final submission until this smoke check is recorded |
+| PERF-01 | Performance smoke | AC-07 | Dashboard endpoints with seeded representative volume | Bounded summary payloads and stable query response | Documented local smoke using seeded DB | Passed: 2026-10-25; six authenticated requests per endpoint, first request treated as warm-up. Requester median 15.77 ms / 502 bytes with recent=2, attention=0, resolved=0. Staff median 17.14 ms / 2,176 bytes with recent=5, urgent=5, assigned-actions=0. |
 | VIS-01 | Manual visual | AC-10, AC-12 | Desktop/tablet/mobile dashboard and action detail | Screenshots and checklist show coherent, responsive Zen Green UI | `artifacts/lab-04/screenshots/` | Passed: 2026-10-13; 9 dashboard/action-detail screenshots at 390/768/1280px; manually reviewed Zen Green styling and responsive content, fixed two mobile layout defects |
 
 ## Final verification record
@@ -44,6 +44,7 @@ Plan tests before feature implementation. Record the actual test path and final 
 - 2026-10-13: `git diff --check` passed after final responsive/accessibility updates.
 - 2026-10-13: Draft submission PDF was generated with exactly one each of “Answer Part 1” through “Answer Part 9” and 22 clickable links. It is explicitly marked as a draft pending main-branch evidence, final Kanban state, personal reflection, and human accessibility checks.
 - 2026-10-14: PR #59 was approved by `siripitch-c` and merged into `lab4-staging` as `0bb7514`. The next release step must integrate current `main` and rerun final evidence against the resulting release branch.
+- 2026-10-25: Authenticated performance smoke passed against the local seeded database. Six requests were measured for each dashboard after login; the first request was treated as warm-up. Requester dashboard median was 15.77 ms at 502 bytes, with list lengths 2/0/0. Staff dashboard median was 17.14 ms at 2,176 bytes, with recent and urgent lists capped at 5 and assigned actions at 0.
 
 ## Issue #51 verification record
 
