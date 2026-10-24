@@ -13,7 +13,7 @@ server/prisma/*.db
 *.log
 .DS_Store
 # Playwright execution output.
-# Lab 3 visual evidence under artifacts/lab-03/screenshots/ is committed intentionally.
+# Lab 3 and Lab 4 visual evidence is committed intentionally.
 test-results/
 playwright-report/
 

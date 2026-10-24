@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { AuthenticatedUser, changePassword, createTicket, getAttachmentDownloadUrl, getCategories, getCurrentUser, getSystems, getTicket, getTickets, login, logout, ReferenceItem, TicketDetail, TicketListResponse, removeAttachment, uploadAttachment } from "./api.js";
-import StaffQueue from "./StaffQueue.js";
+import { AuthenticatedUser, changePassword, createTicket, getAttachmentDownloadUrl, getCategories, getCurrentUser, getSystems, getTicket, getTickets, login, logout, ReferenceItem, TicketDetail, TicketListResponse, removeAttachment, updateRequesterResolutionFeedback, uploadAttachment } from "./api.js";
 import AdminUsers from "./AdminUsers.js";
+import ActionsTaken from "./ActionsTaken.js";
+import AdminWorkspace from "./AdminWorkspace.js";
+import RequesterDashboard from "./RequesterDashboard.js";
+import StaffWorkspace from "./StaffWorkspace.js";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "loading" | "success" | "empty" | "error";
@@ -23,6 +26,8 @@ export default function App() {
   const [ticketNumber, setTicketNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showTickets, setShowTickets] = useState(false);
+  const [requesterView, setRequesterView] = useState<"dashboard" | "create" | "tickets">("create");
+  const [dashboardFilter, setDashboardFilter] = useState<"open" | "waiting" | "recentlyUpdated" | "recentlyResolved" | undefined>();
   const [tickets, setTickets] = useState<TicketListResponse | null>(null);
   const [ticketLoading, setTicketLoading] = useState(false);
   const [ticketError, setTicketError] = useState("");
@@ -35,6 +40,10 @@ export default function App() {
   const [detail, setDetail] = useState<TicketDetail | null>(null);
   const [detailError, setDetailError] = useState("");
   const [attachmentError, setAttachmentError] = useState("");
+  const [feedbackValue, setFeedbackValue] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackConflict, setFeedbackConflict] = useState(false);
+  const [feedbackSaving, setFeedbackSaving] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -111,11 +120,11 @@ export default function App() {
     }
   }
 
-  async function loadTickets(page = ticketPage) {
+  async function loadTickets(page = ticketPage, filter: "open" | "waiting" | "recentlyUpdated" | "recentlyResolved" | null | undefined = dashboardFilter) {
     setTicketLoading(true);
     setTicketError("");
     try {
-      setTickets(await getTickets({ requesterId: Number(selectedId), search, categoryId: filterCategory || undefined, requestedPriority: filterPriority || undefined, sortBy, sortOrder, page, pageSize: 5 }));
+      setTickets(await getTickets({ requesterId: Number(selectedId), search, categoryId: filterCategory || undefined, requestedPriority: filterPriority || undefined, sortBy, sortOrder, dashboardFilter: filter ?? undefined, page, pageSize: 5 }));
       setTicketPage(page);
     } catch (error) {
       setTicketError(error instanceof Error ? error.message : "Unable to retrieve tickets.");
@@ -125,18 +134,39 @@ export default function App() {
   }
 
   function openTickets() {
+    setRequesterView("tickets"); setDashboardFilter(undefined);
     setShowTickets(true);
     setDetail(null);
-    void loadTickets(1);
+    void loadTickets(1, null);
+  }
+
+  function openDashboardTickets(filter: "open" | "waiting" | "recentlyUpdated" | "recentlyResolved") {
+    setRequesterView("tickets"); setDashboardFilter(filter); setShowTickets(true); setDetail(null); setSearch(""); setFilterCategory(""); setFilterPriority("");
+    void loadTickets(1, filter);
   }
 
   async function openDetail(ticketId: number) {
+    setRequesterView("tickets"); setShowTickets(true);
     setDetailError("");
     try {
-      setDetail(await getTicket(ticketId, Number(selectedId)));
+      const next = await getTicket(ticketId, Number(selectedId)); setDetail(next); setFeedbackValue(next.requesterResolved); setFeedbackMessage(""); setFeedbackConflict(false);
     } catch (error) {
       setDetailError(error instanceof Error ? error.message : "Unable to retrieve ticket.");
     }
+  }
+
+  async function saveResolutionFeedback() {
+    if (!detail) return;
+    setFeedbackSaving(true); setFeedbackMessage(""); setFeedbackConflict(false);
+    try {
+      const saved = await updateRequesterResolutionFeedback(detail.id, feedbackValue, detail.version);
+      setDetail({ ...detail, requesterResolved: saved.requesterResolved, currentStatus: saved.currentStatus, version: saved.version, updatedAt: saved.updatedAt });
+      setFeedbackMessage(`Feedback saved. Formal ticket status remains ${saved.currentStatus.replaceAll("_", " ")}.`);
+    } catch (cause) {
+      const failure = cause as Error & { statusCode?: number; currentVersion?: number; currentStatus?: string };
+      setFeedbackConflict(failure.statusCode === 409);
+      setFeedbackMessage(failure.currentVersion ? `${failure.message} Current ticket version: ${failure.currentVersion}; status: ${failure.currentStatus}. Reload and review before retrying.` : failure.message || "Unable to save feedback.");
+    } finally { setFeedbackSaving(false); }
   }
 
   async function handleAttachment(file: File) {
@@ -157,22 +187,23 @@ export default function App() {
   if (sessionLoading) return <AuthFrame><p role="status">Restoring your secure session...</p></AuthFrame>;
   if (!user) return <LoginScreen error={authError} busy={authBusy} onSubmit={establishSession} />;
   if (user.mustChangePassword) return <ChangePasswordScreen error={authError} busy={authBusy} onSubmit={savePassword} />;
-  if (user.role === "IT_STAFF") return <StaffQueue staffName={user.name} onLogout={() => void endSession()} />;
-  if (user.role === "ADMINISTRATOR") return <AdminUsers adminName={user.name} onLogout={() => void endSession()} />;
+  if (user.role === "IT_STAFF") return <StaffWorkspace staffName={user.name} onLogout={() => void endSession()} />;
+  if (user.role === "ADMINISTRATOR") return <AdminWorkspace adminName={user.name} onLogout={() => void endSession()} />;
   if (user.role !== "REQUESTER") return <AuthFrame><h1 className="h3">Welcome, {user.name}</h1><p>Your workspace is being prepared.</p><button className="btn btn-outline-success" type="button" onClick={() => void endSession()}>Log out</button></AuthFrame>;
 
   return (
     <div className="app-shell">
       <header className="app-header">
         <div className="app-header__inner">
-          <a className="brand" href="#top" aria-label="TokTickIT home" onClick={(event) => { event.preventDefault(); setShowTickets(false); setDetail(null); }}><span className="brand-mark" aria-hidden="true">◷</span><span className="brand-name">TokTickIT</span></a>
-          {showCreate && <nav className="app-nav" aria-label="Application navigation"><button type="button" onClick={openTickets}>My Tickets</button><button type="button" onClick={() => { setShowTickets(false); setDetail(null); }}>Create Ticket</button></nav>}
+          <a className="brand" href="#top" aria-label="TokTickIT home" onClick={(event) => { event.preventDefault(); setRequesterView("dashboard"); setShowTickets(false); setDetail(null); }}><span className="brand-mark" aria-hidden="true">◷</span><span className="brand-name">TokTickIT</span></a>
+          {showCreate && <nav className="app-nav" aria-label="Application navigation"><button type="button" aria-current={requesterView === "dashboard" ? "page" : undefined} onClick={() => { setRequesterView("dashboard"); setShowTickets(false); setDetail(null); }}>Dashboard</button><button type="button" aria-current={requesterView === "tickets" ? "page" : undefined} onClick={openTickets}>My Tickets</button><button type="button" aria-current={requesterView === "create" ? "page" : undefined} onClick={() => { setRequesterView("create"); setShowTickets(false); setDetail(null); }}>Create Ticket</button></nav>}
           {showCreate && <span className="profile">● {user.name} <button className="profile__logout" type="button" onClick={() => void endSession()}>Log out</button></span>}
         </div>
       </header>
       <main id="top" className="container page-content" style={{ maxWidth: showCreate ? 1180 : 640 }}>
-      <h1 className="h3 mb-3">{showCreate ? (detail ? "Ticket Detail" : showTickets ? "My Tickets" : "Create Ticket") : "TokTickIT"}</h1>
-      {showCreate && !showTickets && (
+      <h1 className="h3 mb-3">{showCreate ? (detail ? "Ticket Detail" : requesterView === "dashboard" ? "Dashboard" : requesterView === "tickets" ? "My Tickets" : "Create Ticket") : "TokTickIT"}</h1>
+      {showCreate && requesterView === "dashboard" && !detail && <RequesterDashboard onOpenTickets={openDashboardTickets} onOpenAllTickets={openTickets} onOpenTicket={(ticketId) => void openDetail(ticketId)} />}
+      {showCreate && requesterView === "create" && (
         <section className="mt-4">
           <button className="btn btn-outline-success mb-3" type="button" onClick={handleChangeRequester}>Log out</button>
           {ticketNumber ? <p className="alert alert-success" role="status">Ticket created: <strong>{ticketNumber}</strong></p> : null}
@@ -205,7 +236,7 @@ export default function App() {
         </section>
       )}
 
-      {showTickets && !detail && (
+      {showTickets && requesterView === "tickets" && !detail && (
         <section className="mt-4">
           <h2 className="h4">My Tickets</h2>
           <div className="row g-2">
@@ -239,6 +270,8 @@ export default function App() {
             <dt>Summary</dt><dd>{detail.summary}</dd>
             <dt>Description</dt><dd>{detail.description}</dd>
           </dl>
+          {!(["CLOSED", "CANCELLED"].includes(detail.currentStatus)) && <section className="mt-3" aria-labelledby="resolution-feedback-heading"><h3 className="h5" id="resolution-feedback-heading">Resolution feedback</h3><label className="form-check-label d-flex gap-2 align-items-center"><input className="form-check-input mt-0" type="checkbox" checked={feedbackValue} onChange={(event) => setFeedbackValue(event.target.checked)} />Problem appears resolved</label><p className="form-text">This feedback is advisory and does not change your ticket status.</p><button className="btn btn-success" type="button" disabled={feedbackSaving || feedbackValue === detail.requesterResolved} onClick={() => void saveResolutionFeedback()}>{feedbackSaving ? "Saving..." : "Save feedback"}</button>{feedbackMessage && <p className={`alert ${feedbackConflict ? "alert-danger" : feedbackMessage.startsWith("Feedback saved") ? "alert-success" : "alert-danger"} mt-2`} role={feedbackConflict ? "alert" : "status"}>{feedbackMessage}{feedbackConflict && <button className="btn btn-outline-success ms-2" type="button" onClick={() => void openDetail(detail.id)}>Reload ticket</button>}</p>}</section>}
+          <ActionsTaken ticketId={detail.id} canEdit={false} />
           <h3 className="h5">Attachments</h3>
           <label className="form-label" htmlFor="attachment-file">Add attachment</label>
           <input id="attachment-file" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleAttachment(file); }} />

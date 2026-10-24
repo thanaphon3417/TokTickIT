@@ -29,10 +29,10 @@ describe("Staff ticket workflow", () => {
   it("allows staff to assign an eligible owner and make a permitted status transition", async () => {
     const noah = await getPrisma().user.findUniqueOrThrow({ where: { email: "noah.staff@toktickit.local" } });
     const agent = await staffAgent();
-    const updated = await agent.patch(`/api/staff/tickets/${ticketId}`).send({ ownerId: noah.id, itPriority: "HIGH", currentStatus: "OPEN" });
+    const updated = await agent.patch(`/api/staff/tickets/${ticketId}`).send({ ownerId: noah.id, itPriority: "HIGH", currentStatus: "OPEN", expectedVersion: 1 });
     expect(updated.status).toBe(200);
     expect(updated.body).toMatchObject({ owner: { id: noah.id }, itPriority: "HIGH", currentStatus: "OPEN" });
-    const invalid = await agent.patch(`/api/staff/tickets/${ticketId}`).send({ currentStatus: "CLOSED" });
+    const invalid = await agent.patch(`/api/staff/tickets/${ticketId}`).send({ currentStatus: "CLOSED", expectedVersion: 2 });
     expect(invalid.status).toBe(409);
   });
 

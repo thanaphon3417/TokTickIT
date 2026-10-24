@@ -60,6 +60,8 @@ model User {
   ownedTickets        Ticket[]  @relation("TicketOwner")
   publicComments      PublicComment[]
   internalNotes       InternalNote[]
+  performedActions    TicketAction[] @relation("ActionPerformer")
+  assignedActions     TicketAction[] @relation("ActionAssignee")
 
   @@index([role, isActive])
 }
@@ -99,6 +101,13 @@ enum TicketStatus {
   CANCELLED
 }
 
+enum TicketActionStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 model Ticket {
   id                Int              @id @default(autoincrement())
   ticketNumber      String           @unique
@@ -113,6 +122,8 @@ model Ticket {
   currentStatus     TicketStatus     @default(NEW)
   ownerId           Int?
   requesterResolved Boolean          @default(false)
+  version           Int              @default(1)
+  resolutionReason  String?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   requester         DevelopmentRequester @relation(fields: [requesterId], references: [id])
@@ -122,12 +133,38 @@ model Ticket {
   attachments       Attachment[]
   publicComments    PublicComment[]
   internalNotes     InternalNote[]
+  actions           TicketAction[]
 
   @@index([requesterId, createdAt])
   @@index([categoryId])
   @@index([relatedSystemId])
   @@index([ownerId, currentStatus])
   @@index([itPriority])
+}
+
+model TicketAction {
+  id               Int               @id @default(autoincrement())
+  ticketId         Int
+  actionDateTime   DateTime
+  description      String
+  result           String?
+  performedById    Int
+  assigneeId       Int?
+  followUpRequired Boolean           @default(false)
+  followUpNote     String?
+  attachmentNotes  String?
+  status           TicketActionStatus @default(PLANNED)
+  idempotencyKey   String
+  version          Int               @default(1)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  ticket           Ticket            @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  performedBy      User              @relation("ActionPerformer", fields: [performedById], references: [id], onDelete: Restrict)
+  assignee         User?             @relation("ActionAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+
+  @@unique([performedById, idempotencyKey])
+  @@index([ticketId, actionDateTime, id])
+  @@index([assigneeId, status])
 }
 
 model PublicComment {

@@ -74,12 +74,13 @@ export interface TicketListQuery {
   currentStatus?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  dashboardFilter?: "open" | "waiting" | "recentlyUpdated" | "recentlyResolved";
   page?: number;
   pageSize?: number;
 }
 
 export interface TicketListResponse {
-  items: Array<{ id: number; ticketNumber: string; summary: string; requestedPriority: string; currentStatus: string; createdAt: string; updatedAt: string; category: ReferenceItem; relatedSystem: ReferenceItem }>;
+  items: Array<{ id: number; ticketNumber: string; summary: string; requestedPriority: string; currentStatus: string; requesterResolved: boolean; version: number; createdAt: string; updatedAt: string; category: ReferenceItem; relatedSystem: ReferenceItem }>;
   pagination: { page: number; pageSize: number; totalItems: number; totalPages: number };
 }
 
@@ -89,12 +90,57 @@ export type StaffQueueTicket = TicketListResponse["items"][number] & {
   owner: { id: number; name: string } | null;
 };
 export interface StaffQueueResponse { items: StaffQueueTicket[]; pagination: TicketListResponse["pagination"]; }
-export interface StaffQueueQuery { search?: string; categoryId?: string; requestedPriority?: string; currentStatus?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number; }
-export type StaffTicketDetail = StaffQueueTicket & { description: string; ticketDate: string; relatedSystem: ReferenceItem; attachments: AttachmentMetadata[] };
+export interface StaffQueueQuery { search?: string; categoryId?: string; requestedPriority?: string; itPriority?: string; currentStatus?: string; owner?: "me" | "unassigned"; activeOnly?: boolean; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number; }
+export type StaffTicketDetail = StaffQueueTicket & { description: string; ticketDate: string; resolutionReason: string | null; relatedSystem: ReferenceItem; attachments: AttachmentMetadata[] };
 export type StaffUser = { id: number; name: string; email: string };
 export type AdminUser = StaffUser & { role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR"; isActive: boolean; mustChangePassword: boolean; createdAt: string; updatedAt: string };
-export type TicketWorkflowUpdate = { ownerId?: number | null; itPriority?: "LOW" | "MEDIUM" | "HIGH"; currentStatus?: string };
+export type TicketWorkflowUpdate = { ownerId?: number | null; itPriority?: "LOW" | "MEDIUM" | "HIGH"; currentStatus?: string; expectedVersion: number; resolutionReason?: string };
 export type CollaborationEntry = { id: number; body: string; createdAt: string; author: { id: number; name: string; role: string } };
+export type TicketAction = { id: number; ticketId: number; actionDateTime: string; description: string; result: string | null; performedById: number; assigneeId: number | null; followUpRequired: boolean; followUpNote: string | null; attachmentNotes: string | null; status: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"; version: number; createdAt: string; updatedAt: string; performedBy: { id: number; name: string; email: string }; assignee: { id: number; name: string; email: string } | null };
+export type TicketActionInput = { actionDateTime: string; description: string; result: string; assigneeId: number | null; followUpRequired: boolean; followUpNote: string; attachmentNotes: string };
+
+export type DashboardTicket = { id: number; ticketNumber: string; summary: string; currentStatus: string; requestedPriority: string; updatedAt: string };
+export type RequesterDashboardResponse = { metrics: { open: number; waitingForRequester: number; recentlyUpdated: number; recentlyResolved: number }; recentTickets: DashboardTicket[]; attentionTickets: DashboardTicket[]; recentlyResolvedTickets: DashboardTicket[] };
+export type StaffDashboardAction = { id: number; ticketId: number; description: string; status: TicketAction["status"]; updatedAt: string; ticket: { id: number; ticketNumber: string; summary: string } };
+export type StaffDashboardResponse = { metrics: { unassigned: number; ownedByMe: number; byStatus: Record<string, number>; byPriority: Record<string, number>; myOpenActions: number }; myActions: StaffDashboardAction[]; recentTickets: Array<DashboardTicket & { itPriority: string }>; urgentTickets: Array<DashboardTicket & { itPriority: string }> };
+
+export async function getRequesterDashboard(): Promise<RequesterDashboardResponse> {
+  const response = await fetch(`${API_URL}/api/requester/dashboard`, sessionOptions);
+  if (!response.ok) return apiError(response, "Unable to retrieve the requester dashboard.");
+  return response.json() as Promise<RequesterDashboardResponse>;
+}
+
+export async function getStaffDashboard(): Promise<StaffDashboardResponse> {
+  const response = await fetch(`${API_URL}/api/staff/dashboard`, sessionOptions);
+  if (!response.ok) return apiError(response, "Unable to retrieve the staff dashboard.");
+  return response.json() as Promise<StaffDashboardResponse>;
+}
+
+async function actionApiError(response: Response, fallback: string): Promise<never> {
+  const body = await response.json().catch(() => ({}));
+  const error = new Error(body.error ?? fallback) as Error & { fieldErrors?: Record<string, string>; currentVersion?: number; currentStatus?: string; statusCode: number };
+  error.fieldErrors = body.fieldErrors; error.currentVersion = body.currentVersion; error.currentStatus = body.currentStatus; error.statusCode = response.status;
+  throw error;
+}
+
+export async function getTicketActions(ticketId: number): Promise<TicketAction[]> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/actions`, sessionOptions);
+  if (!response.ok) return actionApiError(response, "Unable to retrieve ticket actions.");
+  return response.json() as Promise<TicketAction[]>;
+}
+
+export async function createTicketAction(ticketId: number, input: TicketActionInput, idempotencyKey: string): Promise<TicketAction> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/actions`, { method: "POST", ...sessionOptions, headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey }, body: JSON.stringify(input) });
+  if (!response.ok) return actionApiError(response, "Unable to create ticket action.");
+  return response.json() as Promise<TicketAction>;
+}
+
+export async function updateTicketAction(ticketId: number, actionId: number, input: TicketActionInput & { expectedVersion: number; status: TicketAction["status"] }): Promise<TicketAction> {
+  const { actionDateTime: _immutableDate, ...editable } = input;
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/actions/${actionId}`, { method: "PATCH", ...sessionOptions, headers: { "Content-Type": "application/json" }, body: JSON.stringify(editable) });
+  if (!response.ok) return actionApiError(response, "Unable to update ticket action.");
+  return response.json() as Promise<TicketAction>;
+}
 
 export async function getStaffTickets(query: StaffQueueQuery): Promise<StaffQueueResponse> {
   const params = new URLSearchParams(); Object.entries(query).forEach(([key, value]) => { if (value !== undefined) params.set(key, String(value)); });
@@ -128,8 +174,15 @@ export async function updateAdminUser(id: number, input: { name: string; email: 
 
 export async function updateStaffTicket(ticketId: number, update: TicketWorkflowUpdate): Promise<StaffTicketDetail> {
   const response = await fetch(`${API_URL}/api/staff/tickets/${ticketId}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) });
-  if (!response.ok) return apiError(response, "Unable to update the staff ticket.");
+  if (!response.ok) return actionApiError(response, "Unable to update the staff ticket.");
   return response.json() as Promise<StaffTicketDetail>;
+}
+
+export type RequesterResolutionFeedback = { requesterResolved: boolean; currentStatus: string; version: number; updatedAt: string };
+export async function updateRequesterResolutionFeedback(ticketId: number, appearsResolved: boolean, expectedVersion: number): Promise<RequesterResolutionFeedback> {
+  const response = await fetch(`${API_URL}/api/tickets/${ticketId}/resolution-feedback`, { method: "PATCH", ...sessionOptions, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appearsResolved, expectedVersion }) });
+  if (!response.ok) return actionApiError(response, "Unable to save resolution feedback.");
+  return response.json() as Promise<RequesterResolutionFeedback>;
 }
 
 export async function getTicketComments(ticketId: number): Promise<CollaborationEntry[]> {
@@ -164,6 +217,8 @@ export interface TicketDetail {
   description: string;
   requestedPriority: string;
   currentStatus: string;
+  requesterResolved: boolean;
+  version: number;
   createdAt: string;
   updatedAt: string;
   requester: DevelopmentRequester;

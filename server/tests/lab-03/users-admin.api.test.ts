@@ -18,7 +18,10 @@ beforeEach(async () => {
   await prisma.user.update({ where: { email: "avery.admin@toktickit.local" }, data: { passwordHash: await hashPassword(password), mustChangePassword: false, isActive: true } });
   await prisma.user.update({ where: { email: "iris.staff@toktickit.local" }, data: { passwordHash: await hashPassword(password), mustChangePassword: false, isActive: true } });
 });
-afterEach(async () => { if (createdUserId) { await getPrisma().developmentRequester.deleteMany({ where: { userId: createdUserId } }); await getPrisma().user.delete({ where: { id: createdUserId } }).catch(() => undefined); createdUserId = 0; } });
+afterEach(async () => {
+  if (createdUserId) { await getPrisma().developmentRequester.deleteMany({ where: { userId: createdUserId } }); await getPrisma().user.delete({ where: { id: createdUserId } }).catch(() => undefined); createdUserId = 0; }
+  await getPrisma().user.update({ where: { email: "avery.admin@toktickit.local" }, data: { passwordHash: await hashPassword("InitialPass123!"), mustChangePassword: false, isActive: true } });
+});
 
 describe("Administrator user management", () => {
   it("restricts the API and returns safe searchable users", async () => {
