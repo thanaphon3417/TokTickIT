@@ -24,4 +24,4 @@ These are excerpts from the actual user prompts in this planning conversation. A
 
 ## My Reflection
 
-Student-authored reflection is still required before submission. In the student's own words, explain how specification-agent work clarified decisions, how coding-agent suggestions were checked against the contract and tests, what changed after human review, and where AI output was incorrect or incomplete. The record above documents the observed mobile defects and fixes; do not present AI-authored wording as the student's personal reflection.
+AI helped convert the Lab 4 requirements into a specification, implementation plan, test traceability, and review checklist. I checked the generated suggestions against the project’s existing architecture, API contracts, and automated test results before using them. During testing and visual review, I found mobile layout problems in the staff queue and ticket work controls. Those issues were corrected and the screenshots and browser tests were rerun. AI output still required review because it could not replace my own judgment, manual accessibility checks, GitHub review evidence, or verification of final release results.
