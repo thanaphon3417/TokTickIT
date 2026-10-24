@@ -55,7 +55,7 @@ Add `TicketAction` with ticket FK, action date/time, description, result, `perfo
 
 ## 8. API contract summary
 
-Exact requests, responses, validation and status codes are in [api-spec.md](api-spec.md). Planned endpoints: `GET/POST /api/tickets/:id/actions`; `PATCH /api/tickets/:id/actions/:actionId`; `GET /api/requester/dashboard`; `GET /api/staff/dashboard`; and versioned `PATCH /api/staff/tickets/:id`. All writes derive actor from the session, enforce role and ownership on the backend, validate active assignees, and return safe errors. Existing Lab 2/3 endpoints remain supported.
+Exact requests, responses, validation and status codes are in [api-spec.md](api-spec.md). Implemented endpoints include `GET/POST /api/tickets/:id/actions`; `PATCH /api/tickets/:id/actions/:actionId`; `GET /api/requester/dashboard`; `GET /api/staff/dashboard`; and versioned `PATCH /api/staff/tickets/:id`. All writes derive actor from the session, enforce role and ownership on the backend, validate active assignees, and return safe errors. Existing Lab 2/3 endpoints remain supported.
 
 ## 9. Acceptance criteria
 

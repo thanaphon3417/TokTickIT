@@ -58,19 +58,14 @@ PORT=3000
 
 ## Create and seed the database
 
-From the `server` directory, create the database table and seed the categories:
-
-```powershell
-npx prisma migrate dev --name init
-npm.cmd run prisma:seed
-```
-
-The seed is safe to run multiple times. It creates the reference data without duplicates. For an existing Lab 3 database, back it up first, then apply the additive Lab 4 migration and seed representative accounts, tickets, and actions:
+From the `server` directory, apply the committed migrations and seed the categories:
 
 ```powershell
 npx.cmd prisma migrate deploy
 npm.cmd run prisma:seed
 ```
+
+The seed is safe to run multiple times. It creates reference data without duplicates. For an existing Lab 3 database, back it up first, then apply the additive Lab 4 migration and seed representative accounts, tickets, and actions.
 
 See [the migration and recovery procedure](docs/lab-04/migration-recovery.md) before migrating a persistent database. Existing records are preserved.
 
@@ -168,12 +163,12 @@ Committed visual evidence belongs under `artifacts/lab-02/screenshots/` and `art
 - [Sprint 4 specification](docs/lab-04/specification.md), [API contract](docs/lab-04/api-spec.md), and [UI specification](docs/lab-04/ui-spec.md)
 - [Test plan and final verification record](docs/lab-04/tests.md)
 - [Visual and accessibility review](docs/lab-04/visual-accessibility-checklist.md)
-- [Submission PDF draft (replace with finalized evidence before submitting)](artifacts/lab-04/submission.pdf) · [editable HTML source](docs/lab-04/submission.html)
+- [Submission PDF draft (replace with finalized evidence before submitting)](artifacts/lab-04/submission.pdf) and [editable HTML source](docs/lab-04/submission.html)
 - [Reviewer evidence](docs/lab-04/reviewer.md) and [AI-use record](docs/lab-04/ai-use.md)
 - [Migration and recovery procedure](docs/lab-04/migration-recovery.md)
 - [Lab 4 screenshots](artifacts/lab-04/screenshots/)
 
-Lab 4 feature PRs target `lab4-staging`; final integration to `main` is reviewed separately after staged verification.
+All six Lab 4 feature PRs are approved and merged into `lab4-staging`. Final integration to `main` remains a separately reviewed release step after the current `main` documentation changes are integrated and final evidence is refreshed.
 
 ## Repository structure
 
@@ -189,4 +184,4 @@ toktickit/
 
 ## Git workflow
 
-Each lab uses its documented staging branch and issue-specific feature branches. For Lab 4, feature PRs target `lab4-staging`; after final regression and evidence review, a separately reviewed release PR integrates `lab4-staging` into `main`.
+Each lab uses its documented staging branch and issue-specific feature branches. Lab 4 feature PRs targeted `lab4-staging`; after final regression and evidence review, a separately reviewed release PR will integrate `lab4-staging` into `main`.
